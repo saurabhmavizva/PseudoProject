@@ -1,0 +1,162 @@
+package com.avizva.controller;
+
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.avizva.enums.RequestState;
+import com.avizva.model.Employee;
+import com.avizva.model.ReimbursementRequest;
+import com.avizva.service.EmployeeService;
+import com.avizva.service.FileTransferService;
+import com.avizva.service.ReimbursementRequestService;
+import com.avizva.utility.CreatePdf;
+import com.avizva.utility.PasswordUtility;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+
+@Controller
+public class FileTransferController {
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	@Autowired
+	private FileTransferService fileTransferService;
+
+	@Autowired
+	private ReimbursementRequestService reimbursementRequestService;
+
+	@Autowired
+	private EmployeeService employeeService;
+
+	@Value("${fileTransferService.fileDirectory}")
+	private String fileDir;
+
+	@RequestMapping(value = "/fileUpload", method = RequestMethod.POST, consumes = { "multipart/form-data" })
+	@ResponseBody
+	public String uploadInvoice(@RequestParam MultipartFile file) {
+		LOGGER.debug(file.getSize());
+		if (file.getSize() > 5242880) {
+			return "sizebig";
+		}
+		String fileName = fileTransferService.uploadInvoiceImage(file);
+		return fileName;
+	}
+
+	@RequestMapping(value = "/download", produces = { MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE })
+	@ResponseBody
+	public byte[] downloadFile(@RequestParam("fileName") String fileName) {
+		try {
+			InputStream inputStream = new FileInputStream(fileDir + fileName);
+			return IOUtils.toByteArray(inputStream);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null;
+
+	}
+
+	@RequestMapping("/generatereport")
+	public HttpEntity<byte[]> generateReimbursementReport(@RequestParam("requestId") Integer requestId,
+			HttpSession session, HttpServletResponse response) throws IOException, DocumentException {
+		ReimbursementRequest req = reimbursementRequestService.viewRequestById(requestId);
+		Employee employee = employeeService.getEmployeeById((Integer) session.getAttribute("id"));
+
+		Document document = new Document();
+		String justName = "_Report_For-" + requestId + "-" + PasswordUtility.generatePassword() + ".pdf";
+		String filename = fileDir + justName;
+		PdfWriter.getInstance(document, new FileOutputStream(filename));
+		document.open();
+		CreatePdf.addMetaData(document);
+		CreatePdf.addTitlePage(document);
+		Paragraph paragraph = new Paragraph();
+		CreatePdf.creteEmptyLine(paragraph, 2);
+		document.add(paragraph);
+
+		PdfPTable table = new PdfPTable(3);
+
+		PdfPCell c1 = new PdfPCell(new Phrase("Request Id"));
+		c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.addCell(c1);
+		table.addCell(req.getReimbursementId());
+
+		c1 = new PdfPCell(new Phrase("Employee Name"));
+		c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.addCell(c1);
+		table.addCell(employee.getFirstName() + " " + employee.getLastName());
+
+		if (req.getState() != RequestState.DRAFT) {
+			c1 = new PdfPCell(new Phrase("Submission Date"));
+			c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+			table.addCell(c1);
+			table.setHeaderRows(1);
+			table.addCell(req.getSubmissionDate().toString());
+
+		}
+		c1 = new PdfPCell(new Phrase("Category"));
+		c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.addCell(c1);
+		table.setHeaderRows(1);
+		table.addCell(req.getCategory().getName());
+
+		c1 = new PdfPCell(new Phrase("Amount Requested"));
+		c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.addCell(c1);
+		table.setHeaderRows(1);
+		table.addCell(req.getAmountRequested().toString());
+
+		c1 = new PdfPCell(new Phrase("Amount Approved"));
+		c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.addCell(c1);
+		table.setHeaderRows(1);
+		table.addCell(req.getAmountApproved().toString());
+
+		c1 = new PdfPCell(new Phrase("Status"));
+		c1.setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.addCell(c1);
+		table.setHeaderRows(1);
+		table.addCell(req.getState().toString());
+
+		table.setWidthPercentage(150);
+		table.getDefaultCell().setHorizontalAlignment(Element.ALIGN_CENTER);
+		table.getDefaultCell().setVerticalAlignment(Element.ALIGN_MIDDLE);
+		table.addCell(req.getReimbursementId());
+		LOGGER.info(employee.getFirstName());
+
+		document.add(table);
+		document.close();
+		LOGGER.info(filename);
+
+		HttpHeaders header = new HttpHeaders();
+		header.setContentType(MediaType.APPLICATION_PDF);
+		header.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + justName + "\"");
+
+		return new HttpEntity<byte[]>(header);
+	}
+
+}

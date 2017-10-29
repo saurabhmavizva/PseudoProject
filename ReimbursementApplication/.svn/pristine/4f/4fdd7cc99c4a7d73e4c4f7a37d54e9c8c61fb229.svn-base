@@ -1,0 +1,93 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8" isELIgnored="false"%>
+<%@ page isELIgnored="false"%>
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+<style type="text/css">
+.panel-body {
+	padding: 40px 0px 40px 0px !important;
+}
+
+.boxes {
+	margin-top: 300px;
+	padding-right: 20px;
+}
+.boxsize{
+	font-size: 18px;
+}
+</style>
+</head>
+<body>
+	<div class="container-fluid">
+		<jsp:include page="includes/header.jsp"></jsp:include>
+		<div class="row">
+			<div class="col-sm-3 col-md-2 col-lg-2">
+				<jsp:include page="includes/navigationMenu.jsp"></jsp:include>
+			</div>
+			<div class="col-lg-10">
+				<legend class="text-left">Admin Panel</legend>
+				<div class="row boxes">
+					<div class="col-md-3 ">
+
+						<div class="panel panel-primary">
+							<a href="employeemanagement">
+								<div class="panel-body text-center">
+
+									<span class="boxsize">Manage Employee</span>
+
+
+								</div>
+							</a>
+						</div>
+					</div>
+					<div class="col-md-3">
+
+						<div class="panel panel-primary">
+
+							<a href="categorymanagement">
+								<div class="panel-body text-center">
+
+									<span class="boxsize">Manage Categories</span>
+
+								</div>
+							</a>
+						</div>
+					</div>
+					<div class="col-md-3">
+
+						<div class="panel panel-primary">
+
+							<a href="projectmanagement">
+								<div class="panel-body text-center">
+
+									<span class="boxsize">Manage Project</span>
+
+								</div>
+							</a>
+						</div>
+					</div>
+					<div class="col-md-3">
+
+						<div class="panel panel-primary">
+
+
+							<a href="manageDesignation">
+								<div class="panel-body text-center">
+
+									<span class="boxsize">Manage Annexure</span>
+
+
+								</div>
+							</a>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+pageEncoding="UTF-8"%>
+<%@ page isELIgnored="false"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Insert title here</title>
+		<style>
+		div#mySidenav, div#myEditSidenav {
+			height: 100%;
+			width: 0;
+			position: fixed;
+			z-index: 1;
+			top: 0;
+			right: 0;
+			overflow-x: hidden;
+			transition: 0.5s;
+			margin-top: 60px;
+		}
+		</style>
+	</head>
+	<body ng-app="adminApp" data-ng-controller="adminCtrl">
+		<div class="container-fluid">
+			<jsp:include page="includes/header.jsp"></jsp:include>
+			<div class="row">
+				<div class="col-sm-3 col-md-2 col-lg-2">
+					<jsp:include page="includes/navigationMenu.jsp"></jsp:include>
+				</div>
+				<div class="col-lg-10">
+					<form class="form-horizontal">
+						<fieldset>
+							<legend>Reimbursement Queue</legend>
+							<div class="form-group tab">
+								<div class="col-lg-10">
+									<table class="table table-striped table-hover table-bordered ">
+										<thead>
+											<tr style="cursor: pointer;">
+												<th ng-click="orderByField='i'; reverseSort = !reverseSort"> #</th>
+												<th ng-click="orderByField='reimbursementId'; reverseSort = !reverseSort">Request Id</th>
+												<th ng-click="orderByField='employee.firstName'; reverseSort = !reverseSort">Employee Name</th>
+												<th>Employee ID</th>
+												<th ng-click="orderByField='category.name'; reverseSort = !reverseSort">Category</th>
+												<th ng-click="orderByField='createdDate'; reverseSort = !reverseSort">Submission Date</th>
+												<th>State</th>
+												<th >Action</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr class="active" ng-repeat="(i,reimbursementRequest) in reimbursementRequests | orderBy:orderByField:reverseSort" >
+											 
+												<td>{{i+1}}
+												</td>
+												<td>{{reimbursementRequest.reimbursementId}}</td>
+												<td>{{reimbursementRequest.employee.firstName}} {{reimbursementRequest.employee.lastName}}</td>
+												<td>{{reimbursementRequest.employee.employeeId}}</td>
+												<td>{{reimbursementRequest.category.name}} </td>
+												<td>{{reimbursementRequest.submissionDate | date : "dd-MM-yyyy"}} </td>
+												<td ng-if="reimbursementRequest.state=='MANAGER_DRAFT'||reimbursementRequest.state=='FINANCE_DRAFT'">DRAFT</td>
+												<td ng-if="reimbursementRequest.state=='WITH_MANAGER'||reimbursementRequest.state=='WITH_FINANCE'">NEW</td>
+												<td id="mySideNav"><div ng-if="reimbursementRequest.state != 'DRAFT'"><a style="cursor: pointer;" ng-click="openNav(reimbursementRequest.id , i)" >Details </a></div> <div ng-if="reimbursementRequest.state == 'DRAFT'"> DRAFT</div></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</fieldset>
+					</form>
+					
+				</div>
+				
+				
+			</div>
+		</div>
+		<!-- Item Details -->
+		<div class="sidenav" id="mySidenav">
+			<div class="row">
+				<div class="col-md-2"></div>
+				<div class="col-md-9">
+					<div class="panel panel-primary">
+						<div class="panel-heading">
+							<h3 class="panel-title">Items Details <a class="pull-right" ng-click="closeNav()">&times</a></h3>
+						</div>
+						<div class="panel-body">
+							<div class="row">
+								<div class="row">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											<h5>Request Id</h5>
+										</div>
+									<div class="col-md-2">
+										<h6>{{context.reimbursementId}} </h6>
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								
+								<div class="row" style="padding-top: 10px">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Employee Name
+										</div>
+									<div class="col-md-2">
+										{{context.employee.firstName}} {{context.employee.lastName}}
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								<div class="row" style="padding-top: 10px" ng-if="context.category.type=='NON_PAYROLL'">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Project Name
+										</div>
+									<div class="col-md-2">
+									 	{{context.employee.assignedToProject.name}}
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								<div class="row" style="padding-top: 10px" ng-if="context.category.type=='NON_PAYROLL' && userRole=='Finance'">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Manager Email
+										</div>
+									<div class="col-md-2">
+									 	{{context.manageremail}}
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								<div class="row" style="padding-top: 10px; padding-bottom: 10px">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Category
+										</div>
+									<div class="col-md-2">
+										{{context.category.name}}
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								
+							
+								<div class="col-md-12">
+									<table class="table table-striped table-hover">
+										<thead>
+											<tr>
+												<th>
+													Approve <input type="checkbox" ng-click="toggleAll()">
+													
+												</th>
+												<th>
+													# 
+												</th>
+												<th>
+													Bill Number
+												</th>
+												<th>
+													Bill Date
+												</th>
+												<th>
+													Description
+												</th>
+												<th>
+													Amount Requested
+												</th>
+												<th>
+													Exchange Rate
+												</th>
+												<th ng-if="context.category.type=='NON_PAYROLL' && userRole=='Finance'">
+													Manager Approval
+												</th>
+												<th>	
+													Documents
+												</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr ng-repeat = "(i,reimbursementItem) in context.items">
+												<td>
+													<span ng-if="userRole=='Finance' && context.category.type=='NON_PAYROLL' && !reimbursementItem.approved"></span>
+													<span ng-if="!(userRole=='Finance' && context.category.type=='NON_PAYROLL' && !reimbursementItem.approved)">
+														<input type="checkbox" checked ng-click="toggleItem(reimbursementItem.id,reimbursementItem.amount)" ng-if="reimbursementItem.approved">
+														<input type="checkbox" ng-click="toggleItem(reimbursementItem.id,reimbursementItem.amount)" ng-if="!reimbursementItem.approved">
+													</span>
+												</td>
+												<td>
+													{{i+1}}
+												</td>
+												<td>
+													{{reimbursementItem.billNumber}}
+												</td>
+												<td>
+													{{reimbursementItem.billDate|date:'dd-MM-yyyy'}}
+												</td>
+												<td>
+													{{reimbursementItem.description}}
+												</td>
+												<td>
+													{{reimbursementItem.amount / reimbursementItem.exchangeRate | currency:reimbursementItem.currency:true}}
+												</td>
+												<td>
+													{{reimbursementItem.exchangeRate | number}}
+												</td>
+												<td ng-if="context.category.type=='NON_PAYROLL' && userRole=='Finance'">
+													<span ng-if="reimbursementItem.approved">Approved</span>
+													<span ng-if="!reimbursementItem.approved">Rejected</span>
+												</td>
+												<td>
+												</td>
+											</tr>
+											
+										</tbody>
+									</table>
+								</div>
+								
+								<div class="row" style="padding-top: 10px">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Amount Requested
+										</div>
+									<div class="col-md-2">
+									 	{{context.amountRequested | currency:'INR'}}
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								<div class="row" style="padding-top: 10px">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Amount Approved
+										</div>
+									<div class="col-md-2">
+									 	{{context.amountApproved | currency:'INR'}}
+									</div>
+									<div class="col-md-7">
+									</div>
+								</div>
+								<form action="processRequest" method="post">
+								<div ng-if="context.category.type=='NON_PAYROLL' && userRole=='Finance'">
+									<div class="row" style="padding-top: 10px">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Manager Comments
+										</div>
+									<div class="col-md-2">
+									 	{{context.managerComments}}
+									</div>
+									<div class="col-md-7">
+									</div>
+									</div>
+								</div>
+								<div class="row" style="padding-top: 10px">
+									<div class="col-md-1" ></div>
+										<div class="col-md-2">
+											Comments:
+										</div>
+									<div class="col-md-4">
+									 	<div class="form-group">
+									 		<textarea ng-if="userRole=='Manager'" rows="4" cols="200" class="form-control" required="true" name="comment" maxLength="250">{{context.managerComments}}</textarea>
+											<textarea ng-if="userRole=='Finance'" rows="4" cols="200" class="form-control" required="true" name="comment" maxLength="250">{{context.financeComments}}</textarea>
+									 	</div>
+									 	<input type="hidden" name="reimbursementId" value="{{context.id}}">
+									 	<input type="hidden" name="selectedItemsString" value="{{selectedItems}}">
+									</div>
+									<div class="col-md-7">
+										
+									</div>
+									
+								</div>
+								<div class="row text-center">
+									<input type="submit" class="btn btn-default" value="Approve" name="action">
+									<input type="submit" class="btn btn-default" value="Save as Draft" name="action">
+								</div>
+								
+								</form>
+								
+							</div>
+							
+						</div>
+						<div class="panel-footer">
+							<div class="alert alert-info"><strong>Note:</strong>Unselected items will be automatically rejected.</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-md-1"></div>
+			</div>
+		</div>
+		
+	
+	<script>
+		
+		function openEditNav() {
+			document.getElementById("myEditSidenav").style.width = "100%";
+		}
+		
+		function closeEditNav() {
+			document.getElementById("myEditSidenav").style.width = "0%";
+		}
+		var app = angular.module("adminApp", []);
+		app.controller('adminCtrl', function($scope) {
+			
+			$scope.reimbursementRequests = ${reimbursementRequests};
+			$scope.reimbursementItemsMap = {};
+			$scope.userRole='${sessionScope.role}';
+			
+			$scope.formatDate=function(){
+				$scope.reimbursementRequests.forEach(request=>{
+					request.submissionDate=Date.parse(request.submissionDate);
+					request.items.forEach(item=>{
+						item.billDate=Date.parse(item.billDate);
+					});
+				});
+			}
+			$scope.formatDate();
+			
+			$scope.convertToMap = function( list ) {
+				
+				var _ctr = 0,
+				_totalItems = $scope.reimbursementRequests.length,
+				_context = {};
+				
+				for ( _ctr; _ctr < _totalItems; _ctr = _ctr + 1 ) {
+					$scope.reimbursementItemsMap[ $scope.reimbursementRequests[ _ctr ].id ]	= $scope.reimbursementRequests[ _ctr ];
+				}
+			};
+			
+			$scope.convertToMap();
+		
+			$scope.selectedItems=[];
+			
+			
+			
+			$scope.toggleAll=function(){
+				if($scope.selectedItems.length!=$scope.context.items.length){
+					$scope.context.items.forEach((item)=>{
+						if($scope.selectedItems.indexOf(item.id)==-1){
+							$scope.selectedItems.push(item.id);
+						}
+					});
+				}else{
+					$scope.selectedItems=[];
+				}
+				console.log($scope.context.items);
+			}
+			
+			$scope.toggleItem=function(itemId,itemAmount){
+				if($scope.selectedItems.indexOf(itemId)==-1){
+					$scope.selectedItems.push(itemId);
+					$scope.context.amountApproved+=itemAmount;
+				}else{
+					$scope.selectedItems.splice($scope.selectedItems.indexOf(itemId),1);
+					$scope.context.amountApproved-=itemAmount;
+				}
+			}
+			
+			$scope.openNav = function( id ,  i) {
+				document.getElementById("mySidenav").style.width = "100%";
+				$scope.convertToMap();
+				//$scope.reimbursModel.id = reimbursementRequest.items.id;
+				//var _ctr = 0,
+					//_totalItems = $scope.reimbursementRequests.length,
+					var _context = $scope.reimbursementItemsMap[ id ];
+					
+					/*for ( _ctr; _ctr < _totalItems; _ctr = _ctr + 1 ) {
+							if ( reimbursementRequest === $scope.reimbursementRequests[ _ctr ].id ) {
+					    		_context = $scope.reimbursementRequests[ _ctr ];
+					        break;
+					    }
+					}*/
+					
+					
+					$scope.context = _context;
+					$scope.selectedItems=[];
+					$scope.context.items.forEach(item=>{
+						if(item.approved){
+							$scope.selectedItems.push(item.id);
+						}
+					});
+					console.log( _context );
+				
+			};
+			$scope.closeNav = function() {
+				document.getElementById("mySidenav").style.width = "0%";
+			};
+			
+		
+		});
+	</script>
+	
+</body>
+</html>

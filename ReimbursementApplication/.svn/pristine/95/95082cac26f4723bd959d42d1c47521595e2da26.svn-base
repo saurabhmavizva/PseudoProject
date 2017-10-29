@@ -1,0 +1,143 @@
+package com.avizva.dao.impl;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.avizva.constants.IdConstants;
+import com.avizva.dao.ReimbursementRequestDAO;
+import com.avizva.model.ReimbursementRequest;
+
+@Repository
+public class ReimbursementRequestDAOImpl implements ReimbursementRequestDAO {
+
+	@Autowired
+	private SessionFactory sessionFactory;
+
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	/**
+	 * This method is used to add a new Reimbursement Request
+	 * 
+	 * @param reimbursementRequest
+	 */
+	@Transactional
+	public ReimbursementRequest addReimbursementRequest(ReimbursementRequest reimbursementRequest) {
+		if (null == reimbursementRequest) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Adding new reimbursement request");
+		reimbursementRequest.setCreatedDate(new Date());
+		reimbursementRequest.setModifiedDate(new Date());
+		reimbursementRequest.setEnabled(true);
+		session.save(reimbursementRequest);
+		reimbursementRequest.setReimbursementId(
+				IdConstants.REIMBURSEMENT_REQUEST_ID + String.format("%1$07d", reimbursementRequest.getId()));
+		LOGGER.info("Successfully saved reimbursement request");
+		return reimbursementRequest;
+	}
+
+	/**
+	 * This method is used to delete a Reimbursement Request
+	 * <p>
+	 * This method sets the enabled flag to false for this Request
+	 * 
+	 * @param reimbursementRequest
+	 */
+	@Transactional
+	public ReimbursementRequest deleteReimbursementRequest(ReimbursementRequest reimbursementRequest) {
+		if (null == reimbursementRequest || null == reimbursementRequest.getId()) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Deleting reimbursement request");
+		reimbursementRequest.setModifiedDate(new Date());
+		session.delete(reimbursementRequest);
+		LOGGER.info("Successfully deleted reimbursement request");
+		return reimbursementRequest;
+	}
+
+	/**
+	 * This method is used to update a Reimbursement Request present in the
+	 * Database
+	 * 
+	 * @param reimbursementRequest
+	 */
+	@Transactional
+	public ReimbursementRequest updateReimbursementRequest(ReimbursementRequest reimbursementRequest) {
+		if (null == reimbursementRequest || null == reimbursementRequest.getId()) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Updating reimbursement request");
+		reimbursementRequest.setModifiedDate(new Date());
+		session.update(reimbursementRequest);
+		LOGGER.info("Successfully updated reimbursement request " + reimbursementRequest.getReimbursementId());
+		return reimbursementRequest;
+	}
+
+	/**
+	 * This method is used to fetch Reimbursement Requests present in the
+	 * database created by a specific Employee based on its Id
+	 * 
+	 * @param employeeId
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<ReimbursementRequest> viewReimbursementRequestsByEmployeeId(Integer employeeId) {
+		if (employeeId == null) {
+			LOGGER.error("Null id send");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Fetching reimbursement reuqests for  employee id " + employeeId);
+		Query query = session.createQuery("from ReimbursementRequest where employeeId=:employeeId and enabled=true");
+		query.setParameter("employeeId", employeeId);
+		return query.list();
+	}
+
+	/**
+	 * This method is used to fetch all the Reimbursement Requests Present in
+	 * the Database
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<ReimbursementRequest> viewAllReimbursementRequests() {
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("fetching all enabled requests");
+		Query query = session.createQuery("from ReimbursementRequest where enabled=true");
+		return query.list();
+	}
+
+	/**
+	 * This method is used to fetch reimbursement Requests by filters
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<ReimbursementRequest> executeQueryWithFilter(String filterQuery) {
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Executing query " + filterQuery);
+		Query query = session.createQuery(filterQuery);
+		return query.list();
+	}
+
+	@Override
+	@Transactional
+	public ReimbursementRequest viewById(Integer id) {
+		Session session = sessionFactory.getCurrentSession();
+		return session.get(ReimbursementRequest.class, id);
+	}
+
+}

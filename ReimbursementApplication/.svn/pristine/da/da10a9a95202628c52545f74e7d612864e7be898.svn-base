@@ -1,0 +1,48 @@
+/*
+ * package com.avizva.config;
+ * 
+ * import javax.sql.DataSource;
+ * 
+ * import org.springframework.beans.factory.annotation.Autowired; import
+ * org.springframework.context.annotation.Configuration; import
+ * org.springframework.security.config.annotation.authentication.builders.
+ * AuthenticationManagerBuilder; import
+ * org.springframework.security.config.annotation.web.builders.HttpSecurity;
+ * import org.springframework.security.config.annotation.web.configuration.
+ * EnableWebSecurity; import
+ * org.springframework.security.config.annotation.web.configuration.
+ * WebSecurityConfigurerAdapter;
+ * 
+ * @Configuration
+ * 
+ * @EnableWebSecurity public class SecurityConfig extends
+ * WebSecurityConfigurerAdapter {
+ * 
+ * @Autowired DataSource dataSource;
+ * 
+ * @Autowired public void configureGlobal(AuthenticationManagerBuilder auth)
+ * throws Exception {
+ * 
+ * System.out.println("INSIDE CONFIGURE GLOBAL");
+ * auth.jdbcAuthentication().dataSource(dataSource)
+ * .usersByUsernameQuery("select email,password,enabled from employee where email=?"
+ * )
+ * .authoritiesByUsernameQuery("select email,role from employee where email=?");
+ * 
+ * //
+ * auth.inMemoryAuthentication().withUser("shivam.mehta007@gmail.com").password(
+ * "18001f0ea3c34c4411a4a31c1b606d0e") // .roles("ROLE_ADMIN"); }
+ * 
+ * @Override protected void configure(HttpSecurity http) throws Exception {
+ * 
+ * http.authorizeRequests().antMatchers("/adminpanel").access(
+ * "hasRole('ROLE_ADMIN')").anyRequest().permitAll()
+ * .and().formLogin().loginPage("/loginadmin").loginProcessingUrl(
+ * "/perform_login")
+ * .usernameParameter("email").passwordParameter("password").and().logout().
+ * logoutUrl("/logout") .logoutSuccessUrl("/").and().csrf().disable();
+ * 
+ * }
+ * 
+ * }
+ */

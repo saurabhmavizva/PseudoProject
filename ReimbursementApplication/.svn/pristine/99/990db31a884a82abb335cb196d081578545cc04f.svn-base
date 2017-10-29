@@ -1,0 +1,73 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8" isELIgnored="false"%>
+<%@ page isELIgnored="false" %>
+   <%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title></title>
+<style type="text/css">
+	.nav-stacked{
+		background: #f1f1f1;
+		min-height: 750px;
+		min-width: 180px;
+	}
+	
+</style>
+</head>
+<body>
+		<%
+			String[] name = request.getRequestURI().split("/");
+			int last = name.length;
+			String newFile = name[last-1];
+			String filename = newFile.replace(".jsp", "");
+//			out.println(filename);
+			String homeactive;
+			if(filename.equals("dashboard")){
+		%> 
+		<c:set var="loginactive" value="active"></c:set>
+		<%
+			}
+			if(filename.equals("addreimbursement")){
+			%> <c:set var="addactive" value="active"></c:set>
+			<%
+			}
+			if(filename.equals("reimbursementhistory")){
+			%> <c:set var="historyactive" value="active" ></c:set> <%
+			}
+			if(filename.equals("adminpanel")){
+			%><c:set var="adminactive" value="active"></c:set> <%
+			}
+			if(filename.equals("reimbursementqueue")){
+			%> <c:set var="queueactive" value="active"></c:set> <%
+			}
+			if(filename.equals("managerreport")){
+				%> <c:set var="reportingactive" value="active"></c:set> <%
+			}
+			if(filename.equals("financereport")){
+				%> <c:set var="reportingactive" value="active"></c:set> <%
+			}
+		%>
+		
+		<ul class="nav nav-pills nav-stacked">
+			
+		  	  <li class="${loginactive}"><a href="dashboard">Dashboard</a></li>
+			  <li class="${addactive}"><a href="addreimbursement">Add Reimbursement</a></li>
+			  <li class="${historyactive}"><a href="reimbursementhistory">Reimbursement History</a></li> 
+		  <c:if test="${sessionScope.role=='Manager'}">
+			  <li class="${queueactive}" ><a href="reimbursementqueue">Reimbursement Queue</a></li>
+			  <li class="${reportingactive}"><a href="reportingManager">Reporting</a></li>	   
+		  </c:if> 
+		  <c:if test="${sessionScope.role=='Finance'}">
+			  <li class="${queueactive}" ><a href="reimbursementqueue">Reimbursement Queue</a></li>
+			  <li class="${reportingactive}"><a href="reportingFinance">Reporting</a></li>	   
+		  </c:if>
+		  <c:if test="${sessionScope.role=='ROLE_ADMIN'}">
+			  <li class="${adminactive}" ><a href="adminpanel">Admin Panel</a></li>   
+		  </c:if>
+		</ul>
+		
+
+</body>
+</html>

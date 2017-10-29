@@ -1,0 +1,472 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ page isELIgnored="false"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Reimbursement History</title>
+<style>
+div#mySidenav {
+	height: 100%;
+	width: 100%;
+	position: fixed;
+	z-index: 1;
+	top: 0;
+	right: 0;
+	overflow-x: hidden;
+	margin-top: 0px;
+	transition: transform 0.2s linear;
+	transform: translateY(-100%);
+}
+
+
+a:hover {
+	text-decoration: none !important;
+}
+
+.tab {
+	margin-top: 20px;
+}
+.legend_borderless {
+	border-bottom: 0px !important;
+}
+</style>
+</head>
+<body ng-app="adminApp" data-ng-controller="adminCtrl">
+	<div class="container-fluid">
+		<jsp:include page="includes/header.jsp"></jsp:include>
+		<div class="row">
+			<div class="col-sm-3 col-md-2 col-lg-2">
+				<jsp:include page="includes/navigationMenu.jsp"></jsp:include>
+			</div>
+			<div class="col-lg-10">
+				<form class="form-horizontal">
+					<fieldset>
+						<legend>REIMBURSEMENT HISTORY</legend>
+						<c:if
+							test="${sessionScope.role eq 'Manager' || sessionScope.role eq 'Finance' }">
+							<legend>
+							<small>
+								<div class="row">
+									<div class="col-md-1">
+										<label class="control-label text-center"><strong>Show</strong></label>
+									</div>
+
+									<div class="radio col-lg-3">
+										<label> <input type="radio" name="optionsShow"
+											id="optionsShow1" value="My Reimbursement Requests"
+											checked="checked">
+											My Reimbursement Requests
+										</label>
+									</div>
+									<div class="radio col-lg-2">
+										<label> <input type="radio" name="optionsShow"
+											id="optionsShow2" value="My Action Queue" 
+											onclick="window.location.href='myactionqueue'">
+											My Processed Requests
+										</label>
+									</div>
+
+									<div class="col-md-12">
+										<br>
+									</div>
+
+								</div>
+
+							</small>
+						</legend>
+							
+						</c:if>
+						<div class="row">
+							<div class="col-md-2 text-left">
+								<label ><strong>Type</strong></label>
+								<div >
+									<select class="form-control" ng-model="selectedType"
+										ng-options="item for item in categoryType">
+		                            	  <option style="display:none" value="">Select A Type</option>
+										
+									</select>
+								</div>
+							</div>
+							<div class="col-md-4 text-left">
+								<label ><strong>Category</strong></label>
+								<div >
+									<select class="form-control" ng-model="allCategoryType"
+										ng-options="item for item in allCategories">
+										<option style="display:none" value="">Select A Category</option>
+									</select>
+								</div>
+							</div>
+							<div class="col-md-5 text-left">
+								<label class="col-md-12"><strong>Submission
+										Date</strong></label>
+								<div class="col-md-5 ">
+										<input type="date" ng-model="startDate" class="form-control ng-valid ">
+								</div>
+    
+								
+                                <div class="col-md-5 ">
+										<input type="date" ng-model="endDate" class="form-control ng-pristine ng-untouched ng-valid ng-empty">
+									</div>
+							</div>
+							
+						</div>
+
+						<div class="form-group tab">
+
+							<div class="col-md-10">
+								
+    <span class="alert alert-success col-md-2 control-label pull-right"><small> Completed Requests</small></span>
+							 
+							 <span class="alert alert-info col-md-2 control-label pull-right"><small> Other Requests</small></span>
+							
+							</div>
+							
+
+							<div class="col-lg-11 tab">
+								<table class="table table-striped table-bordered ">
+									<thead>
+										<tr style="cursor: pointer;">
+											<th>#</th>
+											<th
+												ng-click="orderByField='reimbursementId'; reverseSort = !reverseSort">Request
+												Id <span
+												ng-show="orderByField == 'reimbursementId' && !reverseSort"
+												class="fa fa-caret-down"></span> <span
+												ng-show="orderByField == 'reimbursementId' && reverseSort"
+												class="fa fa-caret-up"></span>
+											</th>
+											<th
+												ng-click="orderByField='categoryName'; reverseSort = !reverseSort">Category
+												<span
+												ng-show="orderByField == 'categoryName' && !reverseSort"
+												class="fa fa-caret-down"></span> <span
+												ng-show="orderByField == 'categoryName' && reverseSort"
+												class="fa fa-caret-up"></span>
+											</th>
+											<th
+												ng-click="orderByField='submissionDate'; reverseSort = !reverseSort">Submission
+												Date <span
+												ng-show="orderByField == 'submissionDate' && !reverseSort"
+												class="fa fa-caret-down"></span> <span
+												ng-show="orderByField == 'submissionDate' && reverseSort"
+												class="fa fa-caret-up"></span>
+											</th>
+											<th>Action</th>
+										</tr>
+									</thead>
+									<tbody>
+
+
+										<tr class="active"
+											ng-repeat="(i,reimbursementRequest) in reimbursements = ( reimbursementRequests | orderBy:orderByField:reverseSort | filter: { category: { name: allCategoryType } }  | typeFilter: { category: { type: selectedType } } | dateFilter:startDate:endDate )">
+
+											<td
+												class="{{'COMPLETED' === reimbursementRequest.state ? 'success': 'info'}}">{{i+1}}
+											</td>
+											<td
+												class="{{'COMPLETED' === reimbursementRequest.state ? 'success': 'info'}}">{{reimbursementRequest.reimbursementId}}
+											</td>
+											<td
+												class="{{'COMPLETED' === reimbursementRequest.state ? 'success': 'info'}}">{{reimbursementRequest.category.name}}
+											</td>
+											<td
+												class="{{'COMPLETED' === reimbursementRequest.state ? 'success': 'info'}}"><div
+													ng-if="reimbursementRequest.submissionDate">{{reimbursementRequest.submissionDate
+													| date : "dd-MM-yyyy"}}</div></td>
+											<td
+												class="{{'COMPLETED' === reimbursementRequest.state ? 'success': 'info'}}"
+												id="mySideNav"><div
+													ng-if="reimbursementRequest.state != 'DRAFT'">
+													<a style="cursor: pointer;"
+														ng-click="openNav(reimbursementRequest.id , i)"><button class="btn-default btn-xs">View Details</button>
+													</a>
+												</div>
+												<div ng-if="reimbursementRequest.state == 'DRAFT'">
+													 <a ng-href="editsaved?requestId={{reimbursementRequest.id}}" ><span class="btn-xs btn-default">View/Edit <i class="fa fa-pencil"></i> </span>  </a>
+												</div></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</fieldset>
+				</form>
+
+			</div>
+
+
+		</div>
+	</div>
+	<!-- Item Details -->
+	<div class="sidenav" id="mySidenav">
+		<div class="row">
+			<div class="col-md-2"></div>
+			<div class="col-md-9">
+				<div class="panel panel-primary">
+					<div class="panel-heading">
+						<h3 class="panel-title">
+							Items Details <a class="pull-right" style="cursor: pointer;"
+								ng-click="closeNav()" ><i class="fa fa-window-close" aria-hidden="true"></i></a>
+						</h3>
+					</div>
+					<div class="panel-body">
+						
+						
+						<div class="row">
+										<div class="col-md-3">
+											<div class="col-md-12">Request Id</div>
+											
+											<legend class="col-md-12 legend_borderless">
+											<strong>{{context.reimbursementId}}</strong>
+											</legend>
+											
+										</div>
+										<div class="col-md-3">
+											<div class="col-md-12">Project Name</div>
+											
+											<legend class="col-md-12 legend_borderless">
+											<strong>{{projectName}}</strong>
+											</legend>
+											
+										</div>
+										<div class="col-md-3">
+											<div class="col-md-12 ">Category</div>
+											
+											<legend class="col-md-12 legend_borderless">
+											<strong>{{context.categoryName}}</strong>
+											</legend>
+											
+										</div>
+									</div>
+						
+						<div class="row">
+							<div class="col-md-12">
+								<table class="table table-striped table-hover table-bordered">
+									<thead>
+										<tr>
+
+											<th>#</th>
+											<th>Bill Number</th>
+											<th>Bill Date</th>
+											<th>Description</th>
+											<th>Amount</th>
+											<th>Exchange Rate</th>
+											<th>Status</th>
+											<th>Documents</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr ng-repeat="(i,reimbursementItem) in context.items">
+											<td>{{i+1}}</td>
+											<td>{{reimbursementItem.billNumber}}</td>
+											<td>{{reimbursementItem.billDate | date:"dd-MM-yyyy"}}</td>
+											<td>{{reimbursementItem.description}}</td>
+											<td>{{reimbursementItem.amount /
+												reimbursementItem.exchangeRate |
+												currency:reimbursementItem.currency:true}}</td>
+												
+											<td>
+												{{reimbursementItem.exchangeRate | number : 2}}
+											</td>
+											<td>
+												<div ng-if="context.state == 'COMPLETED'">
+													<div ng-if="reimbursementItem.approved === true">
+														Approved</div>
+													<div ng-if="reimbursementItem.approved === false">
+														Rejected</div>
+												</div>
+												<div ng-if="context.state != 'COMPLETED'">In Process</div>
+											</td>
+											<td>
+														<a style="cursor: pointer; , text-decoration: none;" href="download?fileName={{reimbursementItem.fileName}}" target="_blank">
+																Click Here
+														</a>
+											</td>
+										</tr>
+
+									</tbody>
+								</table>
+							</div>
+						</div>
+						
+						<div class="row">
+										<div class="col-md-2">
+											<div class="col-md-12">Amount Requested</div>
+											
+											<legend class="col-md-12 legend_borderless">
+											<strong>{{context.amountRequested |
+									currency:'INR'}}</strong>
+											</legend>
+											
+										</div>
+										<div class="col-md-2">
+											<div class="col-md-12 ">Amount Approved</div>
+											
+											<legend class="col-md-12 legend_borderless">
+											<strong>{{context.amountApproved |
+									currency:'INR'}}</strong>
+											</legend>
+											
+										</div>
+										<div class="col-md-4">
+											<div class="col-md-12 ">Manager Comments</div>
+											
+											<legend class="col-md-12 legend_borderless">
+											<strong>{{context.managerComments}}</strong>
+											</legend>
+											
+										</div>
+										<div ng-if="context.financeComments">
+											<div class="col-md-4">
+												<div class="col-md-12 ">Finance Comments</div>
+												
+												<legend class="col-md-12 legend_borderless">
+												<strong>{{context.financeComments}}</strong>
+												</legend>
+												
+											</div>
+										</div>
+										
+										
+							</div>
+							<div class="row">
+								<div class="col-md-2">
+									<a href="generatereport?requestId={{context.id}}"><span class="btn btn-primary">Download Request Report</span></a>
+								</div>
+							</div>
+						
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+	<script>
+		
+		function openEditNav() {
+			document.getElementById("myEditSidenav").style.width = "100%";
+		}
+		
+		function closeEditNav() {
+			document.getElementById("myEditSidenav").style.width = "0%";
+		}
+		var app = angular.module("adminApp", []);
+		
+		app.filter( 'typeFilter', function() {
+			return function( items, filterObj ) {
+				return items.filter( function ( item ) {
+					if ( undefined === filterObj.category.type ) {
+						return item;
+					} else {
+						return item.category.type === filterObj.category.type; 
+					}   
+		        } );
+			}
+		} );
+		
+		
+		app.filter('dateFilter', function() {
+		    return function(items, startDate, endDate) {
+		        var retArray = [];
+
+		        if (!startDate && !endDate) {
+		            return items;
+		        }
+		        if(!endDate){
+		        	endDate = new Date(8640000000000000);
+		        }
+		        else {
+		        	endDate.setDate(endDate.getDate() + 1);
+
+		        }
+		        angular.forEach(items, function(obj) {
+		            var receivedDate = new Date(obj.submissionDate);
+		            if (receivedDate >= startDate && receivedDate <= endDate) {
+		                retArray.push(obj);
+		            }
+		        });
+
+		        return retArray;
+
+		    };
+		    });
+		
+		
+		app.controller('adminCtrl', function($scope) {
+			
+			$scope.reimbursementRequests = ${reimbursementRequests};
+			$scope.categoryName = ${categoryName};
+			var i = 0 ;
+			var j = 0;
+			$scope.addCategoryInRequest = function(){
+				for( i = 0 ;  i < $scope.reimbursementRequests.length ; i = i + 1 ){
+					
+					$scope.reimbursementRequests[i].categoryName = $scope.categoryName[i];
+					
+					$scope.reimbursementRequests[i].createdDate = new Date($scope.reimbursementRequests[i].createdDate);
+					$scope.reimbursementRequests[i].submissionDate = Date.parse($scope.reimbursementRequests[i].submissionDate);
+					for(j = 0 ; j < $scope.reimbursementRequests[i].items.length ; j++){
+						$scope.reimbursementRequests[i].items[j].billDate = Date.parse($scope.reimbursementRequests[i].items[j].billDate);	
+					}
+					
+					
+				}
+			}
+			$scope.addCategoryInRequest();
+			$scope.reimbursementItemsMap = {};
+			$scope.projectName = ${projectName};
+			$scope.allCategories = ${allCategories};
+			
+			$scope.convertToMap = function( list ) {
+				
+				var _ctr = 0,
+				_totalItems = $scope.reimbursementRequests.length,
+				_context = {};
+				
+				for ( _ctr; _ctr < _totalItems; _ctr = _ctr + 1 ) {
+					$scope.reimbursementItemsMap[ $scope.reimbursementRequests[ _ctr ].id ]	= $scope.reimbursementRequests[ _ctr ];
+				}
+			};
+			
+			$scope.convertToMap();
+			$scope.categoryType = ${categoryType};
+			
+			
+			$scope.openNav = function( id ,  i) {
+				document.getElementById("mySidenav").style.transform="translateY(10%)";
+				$scope.convertToMap();
+				//$scope.reimbursModel.id = reimbursementRequest.items.id;
+				//var _ctr = 0,
+					//_totalItems = $scope.reimbursementRequests.length,
+					var _context = $scope.reimbursementItemsMap[ id ];
+					 
+				
+					/*for ( _ctr; _ctr < _totalItems; _ctr = _ctr + 1 ) {
+							if ( reimbursementRequest === $scope.reimbursementRequests[ _ctr ].id ) {
+					    		_context = $scope.reimbursementRequests[ _ctr ];
+					        break;
+					    }
+					}*/
+					
+					$scope.categoryNameIs = $scope.categoryName[i];
+					$scope.context = _context;
+					console.log( _context );
+				
+			};
+			$scope.closeNav = function() {
+				document.getElementById("mySidenav").style.transform="translateY(-100%)";
+			};
+			
+			// For Pagination
+			
+		
+		});
+	</script>
+
+</body>
+</html>

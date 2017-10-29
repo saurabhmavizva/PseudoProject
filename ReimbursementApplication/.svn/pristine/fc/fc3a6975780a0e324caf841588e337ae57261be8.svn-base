@@ -1,0 +1,150 @@
+package com.avizva.service.impl;
+
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.avizva.dao.EmployeeDAO;
+import com.avizva.exception.DaoException;
+import com.avizva.model.Employee;
+import com.avizva.service.EmployeeService;
+import com.avizva.service.MailService;
+import com.avizva.utility.PasswordUtility;
+
+@Service
+public class EmployeeServiceImpl implements EmployeeService {
+
+	private static final Logger LOGGER = LogManager.getLogger(EmployeeServiceImpl.class);
+
+	@Autowired
+	EmployeeDAO employeeDAO;
+
+	@Autowired
+	MailService mailService;
+
+	/**
+	 * This methods add the a new Employee in the database by calling
+	 * EmployeeDAO
+	 * 
+	 * @param employee
+	 */
+	public Employee addEmployee(Employee employee, String createdBy) throws DaoException {
+		employee.setCreatedBy(createdBy);
+		employee.setModifiedBy(createdBy);
+
+		employee.setFirstLogIn(true);
+
+		String password = PasswordUtility.generatePassword();
+
+		LOGGER.info("Adding new Employee in the Database" + employee.getFirstName() + " with password : "
+				+ password.toString());
+
+		employee.setPassword(PasswordUtility.encryptPassword(password));
+		Employee emp1 = employeeDAO.addEmployee(employee);
+		mailService.sendRegistrationMail(emp1.getEmail(), emp1.getFirstName() + " " + emp1.getLastName(), password);
+		return emp1;
+	}
+
+	/**
+	 * This methods deletes the Employee from the database by calling the
+	 * EmployeeDAO
+	 * 
+	 * @param employee
+	 */
+	public Employee deleteEmployee(Employee employee) {
+		return null;
+	}
+
+	/**
+	 * This method updates the Employee in the database by calling the
+	 * EmployeeDAO
+	 * 
+	 * @param employee
+	 */
+
+	public Employee updateEmployee(Employee employee, String modifiedBy) throws DaoException {
+
+		employee.setModifiedBy(modifiedBy);
+		Employee employeeUpdated = employeeDAO.updateEmployee(employee);
+		LOGGER.debug("Inside Employee Update Service ");
+		return employeeUpdated;
+	}
+
+	/**
+	 * This method is used to fetch the Employee by its email which is a unique
+	 * entity in the database by calling the EmployeeDAO
+	 * 
+	 * @param email
+	 */
+	public Employee getEmployeeByEmail(String email) {
+		return employeeDAO.viewEmployeeByEmail(email);
+	}
+
+	public Employee getEmployeeById(Integer id) {
+		return employeeDAO.viewById(id);
+	}
+
+	/**
+	 * This method is used to fetch all the Employees
+	 */
+
+	public List<Employee> getAllEmployee() {
+		return employeeDAO.viewAllEmployee();
+	}
+
+	/**
+	 * This method is used to authenticate the Employee logged in
+	 * 
+	 * @param email
+	 *            , password
+	 * 
+	 */
+	public Employee validate(String email, String password) {
+
+		return employeeDAO.validate(email, PasswordUtility.encryptPassword(password));
+	}
+
+	/**
+	 * This method is used to help the Employee reset its password in case he
+	 * forgets his password
+	 * 
+	 * @param email
+	 * @throws DaoException
+	 */
+	public Employee forgotPasswordAction(String email) throws DaoException {
+		LOGGER.debug("Inside Forgot Password Service");
+		Employee employee = employeeDAO.viewEmployeeByEmail(email);
+		if (employee == null) {
+			return null;
+		}
+		String tempPass = PasswordUtility.generatePassword();
+		LOGGER.debug("TEMP PASS FOR USER IS :" + tempPass);
+		employee.setPassword(PasswordUtility.encryptPassword(tempPass));
+		Employee emp1 = employeeDAO.updateEmployee(employee);
+		mailService.sendForgotPasswordMail(emp1.getEmail(), emp1.getFirstName(), tempPass);
+		return emp1;
+	}
+
+	/**
+	 * This method changes the password of a particular user by its email and
+	 * confirmation of old password and new password
+	 * 
+	 * @param email
+	 *            , oldPassword , newPassword
+	 */
+
+	public Employee changePassword(String email, String oldPassword, String newPassword) {
+		// String password = employee.getPassword();
+		// employee.setPassword(PasswordUtility.encryptPassword(password));
+		return null;
+	}
+
+	@Override
+	public List<Employee> getActiveAndDeactiveEmployee() {
+		return employeeDAO.viewActiveAndDeactiveEmployee();
+	}
+
+}

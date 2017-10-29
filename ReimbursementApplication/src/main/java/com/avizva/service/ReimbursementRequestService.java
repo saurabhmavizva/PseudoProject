@@ -1,0 +1,71 @@
+package com.avizva.service;
+
+import java.util.Date;
+import java.util.List;
+
+import com.avizva.model.Category;
+import com.avizva.model.Employee;
+import com.avizva.model.Project;
+import com.avizva.model.ReimbursementRequest;
+
+/**
+ * This Service interacts with ReimbursementRequestDAO and ReimbursementItemDAO
+ * <p>
+ * This service can add , delete , update and fetch ReimbursementRequests and
+ * filter them based on various parameters like Category , Projects StartDate
+ * End Date
+ * 
+ * @author Campus2017
+ *
+ */
+public interface ReimbursementRequestService {
+	public ReimbursementRequest addReimbursementRequest(ReimbursementRequest reimbursementRequest);
+
+	public ReimbursementRequest deleteReimbursementRequest(ReimbursementRequest reimbursementRequest);
+
+	public ReimbursementRequest updateReimbursementRequest(ReimbursementRequest reimbursementRequest);
+
+	public List<ReimbursementRequest> viewReimbursementRequestByEmployee(Employee employee);
+
+	// To add in TDD
+	public List<String> viewAllCategoryNameByEmployee(Employee employee);
+
+	public List<ReimbursementRequest> viewAllReimbursementRequestbyCategory(Category category, Date startDate,
+			Date endDate);
+
+	public List<ReimbursementRequest> viewAllReimbursementRequestByDate(Date startDate, Date endDate);
+
+	public List<ReimbursementRequest> viewAllReimbursementRequestByStatus(ReimbursementRequest reimbursementRequest,
+			Date startDate, Date endDate);
+
+	public List<ReimbursementRequest> viewAllReimbursementRequestByProject(Project project, Date startDate,
+			Date endDate);
+
+	public List<ReimbursementRequest> viewAllReimbursementRequestByType(Category category, Date startDate,
+			Date endDate);
+
+	public ReimbursementRequest saveAsDraft(ReimbursementRequest reimbursementRequest);
+
+	public List<ReimbursementRequest> getRequestsByManagerEmail(String managerEmail);
+
+	public List<ReimbursementRequest> getRequestsByFinanceEmail(String financeEmail);
+
+	public List<ReimbursementRequest> viewReimbursementRequestsByEmployeeId(Integer employeeId);
+
+	List<ReimbursementRequest> viewAllReimbursementRequestbyFiltersManager(Category category, Integer status,
+			String managerEmail, Date startDate, Date endDate);
+
+	List<ReimbursementRequest> viewAllReimbursementRequestbyFiltersFinance(Integer type, Category category,
+			Project project, Integer status, Date startDate, Date endDate);
+
+	public List<ReimbursementRequest> getReimbursementRequestsForApprovalByManager(String managerEmail,
+			boolean inDraft);
+
+	public List<ReimbursementRequest> getReimbursementRequestsForApprovalByFinance(String financeEmail,
+			boolean inDraft);
+
+	public boolean processRequest(Integer requestId, String comment, Employee employee, boolean saveAsDraft,
+			String selectedItemsString);
+
+	public ReimbursementRequest viewRequestById(Integer requestId);
+}

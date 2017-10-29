@@ -1,0 +1,209 @@
+package com.avizva.dao.impl;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.avizva.constants.ExceptionMessages;
+import com.avizva.dao.EmployeeDAO;
+import com.avizva.exception.DaoException;
+import com.avizva.model.Employee;
+
+@Repository
+public class EmployeeDAOImpl implements EmployeeDAO {
+
+	@Autowired
+	private SessionFactory sessionFactory;
+
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	/**
+	 * This method add a new Employee in the Database
+	 * 
+	 * @param employee
+	 * @return saved employee object
+	 * @throws DaoException
+	 * 
+	 */
+	@Transactional
+	public Employee addEmployee(Employee employee) throws DaoException {
+		if (null == employee) {
+			LOGGER.error("Unexpected parameter sent");
+			throw new DaoException(ExceptionMessages.NULL_PARAMETER_PROVIDED);
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Adding new employee");
+		employee.setCreatedDate(new Date());
+		employee.setModifiedDate(new Date());
+		employee.setEnabled(true);
+		try {
+			session.save(employee);
+			session.flush();
+			LOGGER.info("Employee saved successfully " + employee.getId());
+		} catch (Exception e) {
+			LOGGER.error("Exception occured while saving employee", e);
+			throw new DaoException(e.getMessage());
+		} finally {
+			session.clear();
+		}
+		return employee;
+	}
+
+	/**
+	 * This method is used to delete the Employee
+	 * 
+	 * @param employee
+	 * @return deleted employee object
+	 */
+
+	@Transactional
+	public Employee deleteEmployee(Employee employee) {
+		if (null == employee || null == employee.getId()) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Deleting employee with id " + employee.getEmployeeId());
+		employee.setModifiedDate(new Date());
+		session.delete(employee);
+		LOGGER.info("Employee deletion successful");
+		return employee;
+	}
+
+	/**
+	 * This method fetches the persisted employee from the database
+	 * 
+	 * @param id
+	 *            the id of the persisted object
+	 * 
+	 * @return the persisted employee object
+	 */
+
+	@Override
+	@Transactional
+	public Employee viewById(Integer id) {
+		if (null == id) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("fetching employee with id " + id);
+		return session.get(Employee.class, id);
+	}
+
+	/**
+	 * This method updates the employee from the database
+	 * 
+	 * @param employee
+	 * @return updated employee object
+	 * @throws DaoException
+	 */
+
+	@Transactional
+	public Employee updateEmployee(Employee employee) throws DaoException {
+		if (null == employee || null == employee.getId()) {
+			LOGGER.error("Unexpected parameter sent");
+			throw new DaoException(ExceptionMessages.NULL_PARAMETER_PROVIDED);
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Updating employee with employee id:" + employee.getEmployeeId());
+		employee.setModifiedDate(new Date());
+		try {
+			session.update(employee);
+			session.flush();
+			LOGGER.info("Employee updated successfully");
+		} catch (Exception e) {
+			LOGGER.error("Exception occured while updating employee", e);
+			throw new DaoException(e.getMessage());
+		} finally {
+			session.clear();
+		}
+		return employee;
+	}
+
+	/**
+	 * This method is used to fetch employee by Email
+	 * 
+	 * @param email
+	 * @return fetched employee object
+	 */
+
+	@Transactional
+	public Employee viewEmployeeByEmail(String email) {
+		if (null == email || "".equals(email)) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Getting employee by email:" + email);
+		Query query = session.createQuery("from Employee where email=:email");
+		query.setParameter("email", email);
+		Employee employee = (Employee) query.uniqueResult();
+		LOGGER.info("User found with given email");
+		return employee;
+	}
+
+	/**
+	 * This method is used to fetch all the Employees from the database
+	 * 
+	 * @return List of all enabled employee object
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<Employee> viewAllEmployee() {
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Getting all enabled employees");
+		Query query = session.createQuery("from Employee where enabled=true");
+		return query.list();
+	}
+
+	/**
+	 * This method is used to fetch all the Employees from the database
+	 * 
+	 * @return List of all enabled employee object
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<Employee> viewActiveAndDeactiveEmployee() {
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Getting all enabled employees");
+		Query query = session.createQuery("from Employee order by employeeid asc");
+		return query.list();
+	}
+
+	/**
+	 * This method is used to provide authenticaton mechanism for the Employees
+	 * 
+	 * @return Employee object if validated else null
+	 */
+
+	@Transactional
+	public Employee validate(String email, String password) {
+		if (null == email || null == password || "".equals(email) || "".equals(password)) {
+			LOGGER.info("Uncexpexted parameters sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("validating user with email " + email);
+		Query query = session.createQuery("from Employee where email=:email and password=:password");
+		query.setParameter("email", email);
+		query.setParameter("password", password);
+		Employee employee = (Employee) query.uniqueResult();
+		if (employee == null) {
+			LOGGER.info("Validation failed");
+			return null;
+		} else {
+			LOGGER.info("Validation success");
+			return employee;
+		}
+	}
+
+}

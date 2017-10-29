@@ -1,0 +1,18 @@
+#cron tab for exchange rates.
+crontab.for.exchange.rate.update=0 */10 * * * *
+#currencies for exchange rates.
+currencies.names=USD CNY EUR
+
+passwordconfirm.error = Password Do Not Match Retry
+
+cron.retryCount=3
+
+crontab.retryInterval=0 */10 * * * *
+
+fileTransferService.fileDirectory=/Users/Shared/
+
+
+exception.custom.general.saveMessage=Error occured while saving data. Please check your inputs.
+exception.custom.general.updateMessage=Error occured while updating data. Please check your inputs.
+exception.custom.general.forgotPasswordAction=Error occured while resetting password. Please try again.
+exception.custom.general.changePasswordMessage=Error occured while changing password. Please try again later.

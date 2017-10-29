@@ -1,0 +1,285 @@
+package com.avizva.controller;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpSession;
+import javax.validation.Valid;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Controller;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.avizva.constants.DashboardConstants;
+import com.avizva.dao.AllowanceDAO;
+import com.avizva.exception.DaoException;
+import com.avizva.model.Allowance;
+import com.avizva.model.Designation;
+import com.avizva.model.Employee;
+import com.avizva.model.Project;
+import com.avizva.model.ReimbursementRequest;
+import com.avizva.service.DashboardFilter;
+import com.avizva.service.DesignationService;
+import com.avizva.service.EmployeeService;
+import com.avizva.service.ProgressBarFilterService;
+import com.avizva.service.ProjectService;
+import com.avizva.service.ReimbursementRequestService;
+import com.avizva.utility.PasswordUtility;
+import com.google.gson.Gson;
+
+/**
+ * 
+ * @author Campus 2017 This controller maps My Account for an employee
+ * 
+ *
+ */
+@Controller
+public class EmployeeController {
+
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	@Autowired
+	AllowanceDAO allowanceDAO;
+	@Autowired
+	EmployeeService employeeService;
+	@Autowired
+	DesignationService designationService;
+	@Autowired
+	ProjectService projectService;
+	@Autowired
+	DashboardFilter dashboardFilter;
+	@Autowired
+	ProgressBarFilterService progressBarFilterService;
+	@Autowired
+	ReimbursementRequestService reimbursementRequestService;
+
+	@Value("${passwordconfirm.error}")
+	private String passwordMessage;
+
+	@Value("${changePasswordMessage}")
+	private String changePasswordMessage;
+
+	@Value("${exception.custom.general.saveMessage}")
+	private String generalSaveMessage;
+	@Value("${exception.custom.general.updateMessage}")
+	private String generalUpdateMessage;
+
+	/**
+	 * Calls the My Account page with Employee's details
+	 * 
+	 * @param session
+	 * @return ModelAndView
+	 */
+	@RequestMapping("/myaccount")
+	public ModelAndView myAccount(HttpSession session) {
+		Integer id = (Integer) session.getAttribute("id");
+		Employee employee = employeeService.getEmployeeById(id);
+		LOGGER.info("Viewing MyAccount of user: " + session.getAttribute("name"));
+		return new ModelAndView("myaccount").addObject("employee", employee);
+	}
+
+	/**
+	 * Called when the user clicks on Change password
+	 * 
+	 * @return ModelAndView
+	 */
+	@RequestMapping("/changepassword")
+	public ModelAndView changePassword() {
+		LOGGER.info("Changing Password Page");
+		return new ModelAndView("changepassword").addObject("passwordNotMatchError", passwordMessage);
+
+	}
+
+	/**
+	 * Submitted when the request for password change is made
+	 * 
+	 * @param session
+	 * @param password
+	 * @param currentPassword
+	 * @return ModelAndView
+	 */
+	@RequestMapping("/changepasswordform")
+	public ModelAndView changePasswordRequest(HttpSession session, @RequestParam("password") String password,
+			@RequestParam("currentpassword") String currentPassword) {
+
+		Employee employee = employeeService.getEmployeeById((Integer) session.getAttribute("id"));
+		LOGGER.debug(PasswordUtility.encryptPassword(currentPassword));
+		LOGGER.debug("Stored pass " + employee.getPassword());
+		if (currentPassword != null
+				&& PasswordUtility.encryptPassword(currentPassword).equals(employee.getPassword())) {
+			employee.setPassword(PasswordUtility.encryptPassword(password));
+			try {
+				if (employeeService.updateEmployee(employee,
+						session.getAttribute("name") + " " + session.getAttribute("id")) != null) {
+					return new ModelAndView("dashboard").addObject("msg", "Password Changed Successfully");
+				} else {
+					return new ModelAndView("changepassword").addObject("msg",
+							"Error In Changing Password Please try again Later");
+				}
+			} catch (DaoException e) {
+				return new ModelAndView("changepassword").addObject("msg", changePasswordMessage);
+			}
+		}
+
+		return new ModelAndView("changepassword").addObject("msg", "Current password is incorrect");
+	}
+
+	@RequestMapping("/employeemanagement")
+	public ModelAndView employeeManagement() {
+		List<Employee> employeeList = employeeService.getActiveAndDeactiveEmployee();
+		List<Employee> managerList = new ArrayList<Employee>();
+		for (Employee e : employeeList) {
+			// LOGGER.debug(managerEmp.getFirstName());
+			managerList.add(employeeService.getEmployeeById(e.getAssignedToProject().getHeadedByEmployeeId()));
+			e.getDesignation().setAllowances(null);
+			e.setRequests(null);
+			e.getAssignedToProject().setHeadedByEmployee(null);
+		}
+		for (Employee e : managerList) {
+			e.setAssignedToProject(null);
+			e.setDesignation(null);
+			e.setRequests(null);
+			e.setRole(null);
+
+		}
+		List<Project> projectList = projectService.getAllProject();
+		List<Designation> designationList = designationService.getAllDisgination();
+		for (Designation d : designationList) {
+			d.setAllowances(null);
+		}
+		for (Project p : projectList) {
+			p.setHeadedByEmployee(null);
+		}
+		Gson gson = new Gson();
+
+		String employees = gson.toJson(employeeList);
+		String designations = gson.toJson(designationList);
+		String projects = gson.toJson(projectList);
+		String managers = gson.toJson(managerList);
+		return new ModelAndView("manageemployee").addObject("employees", employees)
+				.addObject("designations", designations).addObject("projects", projects)
+				.addObject("managers", managers);
+
+	}
+
+	/**
+	 * Registers the Employee and add it to the database
+	 * 
+	 * @param employee
+	 * @param session
+	 * @return ModelAndView
+	 */
+	@RequestMapping("/register")
+	public ModelAndView registerAction(@Valid @ModelAttribute("Employee") Employee employee, HttpSession session,
+			BindingResult result) {
+		// if (result.hasErrors()) {
+		// return new ModelAndView("redirect:/employeemanagement");
+		// }
+		// List<Employee> employeeList =
+		// employeeService.getActiveAndDeactiveEmployee();
+		// Boolean exist = null;
+		// for (Employee e : employeeList) {
+		// if (employee.getEmployeeId().equalsIgnoreCase(e.getEmployeeId())) {
+		// exist = true;
+		// break;
+		// }
+		// }
+		// if (exist) {
+		// return new ModelAndView("redirect:/employeemanagement?msg=Employee Id
+		// Already exists");
+		// }
+		// if (employeeService.getEmployeeByEmail(employee.getEmail()) != null)
+		// {
+		// return new ModelAndView("redirect:/employeemanagement?msg=Email Id
+		// already exists");
+		// }
+
+		Employee employeeAdded;
+		try {
+			employeeAdded = employeeService.addEmployee(employee,
+					session.getAttribute("name") + " " + session.getAttribute("id"));
+			if (employeeAdded != null) {
+				return new ModelAndView("redirect:/employeemanagement?msg=Employee Added Successfully");
+			} else {
+				return new ModelAndView("redirect:/employeemanagement?msg=Can not add Employee").addObject("msg",
+						"Invalid Inputs");
+			}
+		} catch (DaoException e) {
+			return new ModelAndView("redirect:/employeemanagement?msg=" + generalSaveMessage);
+		}
+
+	}
+
+	/**
+	 * Updates an existing Employee
+	 * 
+	 * @param employee
+	 * @param session
+	 * @return ModelAndView
+	 */
+	@RequestMapping("/updateemployee")
+	public ModelAndView updateEmployee(@Valid @ModelAttribute("Employee") Employee employee, HttpSession session) {
+		LOGGER.debug("Employee's id: " + employee.getId());
+		Employee updateEmployee;
+		try {
+			updateEmployee = employeeService.updateEmployee(employee,
+					session.getAttribute("name") + " " + session.getAttribute("id"));
+			if (updateEmployee != null) {
+
+				return new ModelAndView("redirect:/employeemanagement?msg=Employee Updated successfully");
+			} else {
+				return new ModelAndView("redirect:/employeemanagement?msg=Employee Not Updated");
+			}
+		} catch (DaoException e) {
+			return new ModelAndView("redirect:/employeemanagement?msg=" + generalUpdateMessage);
+		}
+
+	}
+
+	/**
+	 * Brings the User to the DashBoard
+	 * 
+	 * @return ModelAndView
+	 */
+	@RequestMapping("/dashboard")
+	public ModelAndView viewDashboard(HttpSession session) {
+		Integer id = (Integer) session.getAttribute("id");
+		Integer designationId = (Integer) session.getAttribute("designationId");
+		List list = reimbursementRequestService.viewReimbursementRequestsByEmployeeId(id);
+
+		int totalRequests = dashboardFilter.allRequestsFilter(list, DashboardConstants.totalRequests);
+		int completedRequests = dashboardFilter.allRequestsFilter(list, DashboardConstants.completedRequests);
+		int inProcessRequest = dashboardFilter.allRequestsFilter(list, DashboardConstants.inProcessRequests);
+		int savedRequests = dashboardFilter.allRequestsFilter(list, DashboardConstants.savedRequests);
+		List<ReimbursementRequest> pendingRequests = dashboardFilter.pendingRequestsFilter(list);
+
+		List<Allowance> listAllowance = allowanceDAO.viewAllowancesByDesignationId(designationId);
+
+		List<ReimbursementRequest> completedRequestsList = dashboardFilter.completedRequestFilter(list); // get
+		// category
+		// id
+
+		// get category id and limit consumed for the
+		Map<Integer, Double> map = progressBarFilterService.consumedLimit(listAllowance, completedRequestsList);
+		return new ModelAndView("dashboard").addObject("pendingRequests", pendingRequests)
+				.addObject("totalRequest", totalRequests).addObject("inProcessRequest", inProcessRequest)
+				.addObject("completedRequests", completedRequests).addObject("savedRequests", savedRequests)
+				.addObject("listAllowance", listAllowance).addObject("completedRequestsList", completedRequestsList)
+				.addObject("map", map);
+
+	}
+
+	@RequestMapping("/adminpanel")
+	public ModelAndView adminPanel() {
+		return new ModelAndView("adminpanel");
+	}
+
+}

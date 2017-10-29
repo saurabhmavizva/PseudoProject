@@ -1,0 +1,25 @@
+package com.avizva.dao;
+
+import java.util.List;
+
+import com.avizva.model.Designation;
+
+/**
+ * This class is used to do CRUD Operations for the Designation Model
+ * 
+ * @author Campus2017
+ */
+public interface DesignationDAO {
+	public Designation addDesignation(Designation designation);
+
+	public Designation deleteDesignation(Designation designation);
+
+	public Designation updateDesignation(Designation designation);
+
+	public Designation viewDesignationById(Integer id);
+
+	public List<Designation> viewAllDesignation();
+
+	public List<Designation> viewActiveAndDeactiveDesignation();
+
+}

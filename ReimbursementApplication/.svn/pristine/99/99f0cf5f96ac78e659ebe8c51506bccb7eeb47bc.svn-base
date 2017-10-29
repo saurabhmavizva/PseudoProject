@@ -1,0 +1,31 @@
+package com.avizva.dao;
+
+import java.util.Date;
+import java.util.List;
+
+import com.avizva.model.ReimbursementRequest;
+
+/**
+ * This DAO is used to perform CRUD operations for the ReimbursementRequest
+ * Model
+ * 
+ * @author Campus2017
+ *
+ */
+public interface ReimbursementRequestDAO {
+	public ReimbursementRequest addReimbursementRequest(ReimbursementRequest reimbursementRequest);
+
+	public ReimbursementRequest deleteReimbursementRequest(ReimbursementRequest reimbursementRequest);
+
+	public ReimbursementRequest updateReimbursementRequest(ReimbursementRequest reimbursementRequest);
+
+	public List<ReimbursementRequest> viewReimbursementRequestsByEmployeeId(Integer employeeId);
+
+	public List<ReimbursementRequest> viewAllReimbursementRequests();
+
+	public List<ReimbursementRequest> executeQueryWithFilter(String query);
+
+
+	public ReimbursementRequest viewById(Integer id);
+
+}

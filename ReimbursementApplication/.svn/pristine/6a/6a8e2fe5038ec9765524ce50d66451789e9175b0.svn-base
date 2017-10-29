@@ -1,0 +1,12 @@
+#cron tab for exchange rates.
+crontab.for.exchange.rate.update=0 */10 * * * *
+#currencies for exchange rates.
+currencies.names=USD CNY EUR
+
+passwordconfirm.error = Password Do Not Match Retry
+
+cron.retryCount=3
+
+crontab.retryInterval=0 */10 * * * *
+
+fileTransferService.fileDirectory=/Users/Shared/

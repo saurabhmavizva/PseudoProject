@@ -1,0 +1,318 @@
+package com.avizva.service.impl;
+
+import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.avizva.dao.CategoryDAO;
+import com.avizva.dao.EmployeeDAO;
+import com.avizva.dao.ExchangeRatesDao;
+import com.avizva.dao.ReimbursementItemDAO;
+import com.avizva.dao.ReimbursementRequestDAO;
+import com.avizva.enums.CategoryType;
+import com.avizva.enums.RequestState;
+import com.avizva.model.Category;
+import com.avizva.model.Employee;
+import com.avizva.model.ExchangeRates;
+import com.avizva.model.Project;
+import com.avizva.model.ReimbursementItem;
+import com.avizva.model.ReimbursementRequest;
+import com.avizva.service.MailService;
+import com.avizva.service.ReimbursementItemService;
+import com.avizva.service.ReimbursementService;
+
+@Service
+public class ReimbursementServiceImpl implements ReimbursementService {
+
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	@Autowired
+	private CategoryDAO categoryDAO;
+
+	@Autowired
+	private ReimbursementRequestDAO reimbursementRequestDAO;
+
+	@Autowired
+	private ReimbursementItemService reimbursementItemService;
+
+	@Autowired
+	private ExchangeRatesDao exchangeRatesDAO;
+
+	@Autowired
+	private EmployeeDAO employeeDAO;
+
+	@Autowired
+	private ReimbursementItemDAO reimbursementItemDAO;
+
+	@Autowired
+	private MailService mailService;
+
+	public List<Category> getPayrollCategories() {
+		List<Category> completeList = categoryDAO.viewAllCategory();
+		return completeList.stream().filter(category -> (category.getType() == CategoryType.PAYROLL))
+				.collect(Collectors.toList());
+	}
+
+	public List<Category> getNonPayrollCategories() {
+		List<Category> completeList = categoryDAO.viewAllCategory();
+		return completeList.stream().filter(category -> (category.getType() == CategoryType.NON_PAYROLL))
+				.collect(Collectors.toList());
+	}
+
+	public String getProjectNameByEmployee(Employee employee) {
+		Project project = employee.getAssignedToProject();
+		return project.getName();
+	}
+
+	public String getManagerNameByEmployee(Employee employee) {
+		Project project = employee.getAssignedToProject();
+		Employee manager = project.getHeadedByEmployee();
+		return manager.getFirstName() + " " + manager.getLastName();
+	}
+
+	public String getManagerEmailByEmployee(Employee employee) {
+		Project project = employee.getAssignedToProject();
+		Employee manager = project.getHeadedByEmployee();
+		return manager.getEmail();
+	}
+
+	public ReimbursementRequest saveRequest(Boolean inDraft, Integer employeeId, Integer categoryId,
+			List<ReimbursementItem> allItems, HttpSession session) {
+
+		ReimbursementRequest newRequest = new ReimbursementRequest();
+		newRequest.setEmployeeId(employeeId);
+		newRequest.setCategoryId(categoryId);
+		newRequest.setItems(allItems);
+		String name = (String) session.getAttribute("name");
+		newRequest.setCreatedBy(name);
+		newRequest.setModifiedBy(name);
+		newRequest.setEmployee(employeeDAO.viewById(employeeId));
+		newRequest.setSubmissionDate(null);
+		newRequest.setState(RequestState.DRAFT);
+
+		ReimbursementRequest savedRequest = reimbursementRequestDAO.addReimbursementRequest(newRequest);
+		if (savedRequest == null)
+			return null;
+
+		Double amountRequested = 0.0;
+		for (ReimbursementItem item : allItems) {
+			item.setRequestId(savedRequest.getId());
+			item.setManagerApproved(false);
+			item.setFinanceApproved(false);
+			if (item.getCurrency().equals("INR")) {
+				item.setExchangeRate(1.0);
+			} else {
+				ExchangeRates exchangeRate = exchangeRatesDAO.getExchangeRate(item.getCurrency(), item.getBillDate());
+				if (exchangeRate == null) {
+					reimbursementRequestDAO.deleteReimbursementRequest(savedRequest);
+					return null;
+				}
+				double exchangeValue = exchangeRate.getRate();
+				item.setExchangeRate(exchangeValue);
+			}
+			item.setApproved(false);
+			item.setCreatedBy((String) session.getAttribute("name"));
+			LOGGER.info(item.getBillNumber());
+
+			ReimbursementItem savedItem = reimbursementItemService.addItem(item);
+			amountRequested += savedItem.getAmount() * savedItem.getExchangeRate();
+		}
+		savedRequest.setAmountRequested(amountRequested);
+		savedRequest.setApprovedItemsCount(0);
+		savedRequest.setAmountApproved(0D);
+		savedRequest = reimbursementRequestDAO.updateReimbursementRequest(savedRequest);
+
+		return savedRequest;
+	}
+
+	@Override
+	public ReimbursementRequest submitRequest(Integer employeeId, Integer categoryId, List<ReimbursementItem> allItems,
+			HttpSession session) {
+
+		ReimbursementRequest newRequest = new ReimbursementRequest();
+		newRequest.setEmployeeId(employeeId);
+		newRequest.setCategoryId(categoryId);
+		newRequest.setItems(allItems);
+		String name = (String) session.getAttribute("name");
+		newRequest.setCreatedBy(name);
+		newRequest.setModifiedBy(name);
+		newRequest.setEmployee(employeeDAO.viewById(employeeId));
+		Date date = new Date();
+		newRequest.setSubmissionDate(date);
+		Boolean managerApproved = false;
+		Boolean financeApproved = false;
+		if (categoryDAO.viewCategoryById(categoryId).getType().equals(CategoryType.PAYROLL)) {
+			newRequest.setState(RequestState.WITH_FINANCE);
+			managerApproved = true;
+
+		} else {
+			newRequest.setState(RequestState.WITH_MANAGER);
+			Employee employee = employeeDAO.viewById(employeeId);
+			Project project = employee.getAssignedToProject();
+			newRequest.setManageremail(project.getHeadedByEmployee().getEmail());
+
+		}
+
+		ReimbursementRequest savedRequest = reimbursementRequestDAO.addReimbursementRequest(newRequest);
+		if (savedRequest == null)
+			return null;
+
+		Double amountRequested = 0.0;
+		for (ReimbursementItem item : allItems) {
+			item.setRequestId(savedRequest.getId());
+			if (item.getCurrency().equals("INR")) {
+				item.setExchangeRate(1.0);
+			} else {
+				ExchangeRates exchangeRate = exchangeRatesDAO.getExchangeRate(item.getCurrency(), item.getBillDate());
+				if (exchangeRate == null) {
+					reimbursementRequestDAO.deleteReimbursementRequest(savedRequest);
+					return null;
+				}
+				double exchangeValue = exchangeRate.getRate();
+				item.setExchangeRate(exchangeValue);
+			}
+			item.setAmount(item.getAmount() * item.getExchangeRate());
+			item.setManagerApproved(managerApproved);
+			item.setFinanceApproved(financeApproved);
+			item.setApproved(false);
+			item.setCreatedBy((String) session.getAttribute("name"));
+			LOGGER.info(item.getBillNumber());
+
+			ReimbursementItem savedItem = reimbursementItemService.addItem(item);
+			amountRequested += savedItem.getAmount();
+		}
+		savedRequest.setAmountRequested(amountRequested);
+		savedRequest.setApprovedItemsCount(0);
+		savedRequest.setAmountApproved(0D);
+		savedRequest = reimbursementRequestDAO.updateReimbursementRequest(savedRequest);
+		if (savedRequest.getState() == RequestState.WITH_MANAGER) {
+			Employee employee = employeeDAO.viewById(employeeId);
+			mailService.sendNewRequestSubmissionMail(employee.getEmail(),
+					employee.getFirstName() + " " + employee.getLastName(), savedRequest.getReimbursementId(),
+					savedRequest.getAmountRequested().toString());
+		}
+
+		return savedRequest;
+
+	}
+
+	@Override
+	public ReimbursementRequest checkSaved(Integer requestId, Employee employee) {
+		ReimbursementRequest reimbursementRequest = null;
+		employee.setRole(null);
+		if (requestId != null) {
+
+			List<ReimbursementRequest> empRequests = reimbursementRequestDAO
+					.viewReimbursementRequestsByEmployeeId(employee.getId());
+			for (ReimbursementRequest r : empRequests) {
+				if (r.getId() == requestId) {
+					reimbursementRequest = r;
+				}
+			}
+		} else {
+			return null;
+		}
+		if (reimbursementRequest.getState() != RequestState.DRAFT) {
+			return null;
+		}
+
+		reimbursementRequest.getEmployee().getAssignedToProject().setHeadedByEmployee(null);
+		reimbursementRequest.getEmployee().setDesignation(null);
+		reimbursementRequest.getEmployee().setRequests(null);
+		List<ReimbursementItem> items = reimbursementItemDAO
+				.viewReimbursementItemsForReimbursementRequest(reimbursementRequest.getId());
+		items.forEach(item -> item.setRequest(null));
+		reimbursementRequest.setItems(items);
+
+		return reimbursementRequest;
+
+	}
+
+	@Override
+	public ReimbursementRequest updateRequest(Boolean inDraft, Integer employeeId, Integer categoryId,
+			List<ReimbursementItem> allItems, HttpSession session, Integer requestId) {
+
+		List<ReimbursementRequest> reimbursementRequests = reimbursementRequestDAO
+				.viewReimbursementRequestsByEmployeeId(employeeId);
+		ReimbursementRequest newRequest = null;
+		for (ReimbursementRequest r : reimbursementRequests) {
+			if (r.getId() == requestId)
+				newRequest = r;
+		}
+		if (newRequest == null) {
+			return null;
+		}
+
+		newRequest.setEmployeeId(employeeId);
+		newRequest.setCategoryId(categoryId);
+		newRequest.setItems(allItems);
+		String name = (String) session.getAttribute("name");
+		newRequest.setCreatedBy(name);
+		newRequest.setModifiedBy(name);
+		newRequest.setEmployee(employeeDAO.viewById(employeeId));
+
+		if (inDraft != true) {
+			Date date = new Date();
+			newRequest.setSubmissionDate(date);
+			if (categoryDAO.viewCategoryById(categoryId).getType().equals(CategoryType.PAYROLL)) {
+				newRequest.setState(RequestState.WITH_FINANCE);
+			} else {
+				newRequest.setState(RequestState.WITH_MANAGER);
+			}
+
+		} else {
+			newRequest.setSubmissionDate(null);
+			newRequest.setState(RequestState.DRAFT);
+		}
+
+		ReimbursementRequest savedRequest = reimbursementRequestDAO.updateReimbursementRequest(newRequest);
+		if (savedRequest == null)
+			return null;
+
+		Double amountRequested = 0.0;
+		for (ReimbursementItem item : allItems) {
+			item.setRequestId(savedRequest.getId());
+			item.setManagerApproved(false);
+			item.setFinanceApproved(false);
+			if (item.getCurrency().equals("INR")) {
+				item.setExchangeRate(1.0);
+
+			} else {
+				ExchangeRates exchangeRate = exchangeRatesDAO.getExchangeRate(item.getCurrency(), item.getBillDate());
+				if (exchangeRate == null) {
+					return null;
+				}
+				double exchangeValue = exchangeRate.getRate();
+				item.setExchangeRate(exchangeValue);
+				item.setAmount(item.getAmount() * exchangeValue);
+			}
+			item.setApproved(false);
+			item.setCreatedBy((String) session.getAttribute("name"));
+			LOGGER.info(item.getBillNumber());
+			ReimbursementItem savedItem;
+			if (item.getId() != null) {
+				savedItem = reimbursementItemService.updateItem(item);
+			} else {
+				savedItem = reimbursementItemService.addItem(item);
+			}
+
+			amountRequested += savedItem.getAmount();
+		}
+
+		savedRequest.setAmountRequested(amountRequested);
+		savedRequest.setApprovedItemsCount(0);
+		savedRequest.setAmountApproved(0D);
+		savedRequest = reimbursementRequestDAO.updateReimbursementRequest(savedRequest);
+
+		return savedRequest;
+
+	}
+
+}

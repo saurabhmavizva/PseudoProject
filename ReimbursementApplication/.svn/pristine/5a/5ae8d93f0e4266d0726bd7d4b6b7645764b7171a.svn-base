@@ -1,0 +1,237 @@
+package com.avizva.model;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+import javax.persistence.Temporal;
+import javax.persistence.TemporalType;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+
+import org.hibernate.annotations.CreationTimestamp;
+
+import com.avizva.enums.Role;
+
+/**
+ * This Model is the base model for User authentication and its functionality it
+ * defines the different roles and stores all the information about the user and
+ * the number of requests he has into the database
+ * 
+ * @author Campus2017
+ *
+ */
+@Entity
+public class Employee {
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer id;
+
+	private String employeeId;
+
+	private Boolean enabled;
+
+	@NotNull
+	@Pattern(regexp = "[^0-9]*")
+	private String firstName;
+
+	@NotNull
+	@Pattern(regexp = "[^0-9]*")
+	private String lastName;
+
+	@NotNull
+	@Column(unique = true)
+	private String email;
+
+	private String password;
+
+	@Enumerated(EnumType.ORDINAL)
+	private Role role;
+
+	@ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "designationId", insertable = false, updatable = false)
+	private Designation designation;
+
+	private Integer designationId;
+
+	@Column(columnDefinition = "boolean default true", insertable = false)
+	private Boolean firstLogIn;
+
+	@OneToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "assignedToProjectId", insertable = false, updatable = false)
+	private Project assignedToProject;
+
+	private Integer assignedToProjectId;
+
+	@OneToMany(mappedBy = "employee")
+	private List<ReimbursementRequest> requests;
+
+	@CreationTimestamp
+	@Temporal(TemporalType.TIMESTAMP)
+	private Date createdDate;
+
+	private String createdBy;
+
+	@CreationTimestamp
+	@Temporal(TemporalType.TIMESTAMP)
+	private Date modifiedDate;
+
+	private String modifiedBy;
+
+	public Date getCreatedDate() {
+		return createdDate;
+	}
+
+	public void setCreatedDate(Date createdDate) {
+		this.createdDate = createdDate;
+	}
+
+	public String getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(String createdBy) {
+		this.createdBy = createdBy;
+	}
+
+	public Date getModifiedDate() {
+		return modifiedDate;
+	}
+
+	public void setModifiedDate(Date modifiedDate) {
+		this.modifiedDate = modifiedDate;
+	}
+
+	public String getModifiedBy() {
+		return modifiedBy;
+	}
+
+	public void setModifiedBy(String modifiedBy) {
+		this.modifiedBy = modifiedBy;
+	}
+
+	public List<ReimbursementRequest> getRequests() {
+		return requests;
+	}
+
+	public void setRequests(List<ReimbursementRequest> requests) {
+		this.requests = requests;
+	}
+
+	public Integer getId() {
+		return id;
+	}
+
+	public void setId(Integer id) {
+		this.id = id;
+	}
+
+	public Boolean getEnabled() {
+		return enabled;
+	}
+
+	public void setEnabled(Boolean enabled) {
+		this.enabled = enabled;
+	}
+
+	public String getFirstName() {
+		return firstName;
+	}
+
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+
+	public String getLastName() {
+		return lastName;
+	}
+
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
+	}
+
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
+	public Role getRole() {
+		return role;
+	}
+
+	public void setRole(Role role) {
+		this.role = role;
+	}
+
+	public Designation getDesignation() {
+		return designation;
+	}
+
+	public void setDesignation(Designation designation) {
+		this.designation = designation;
+	}
+
+	public Integer getDesignationId() {
+		return designationId;
+	}
+
+	public void setDesignationId(Integer designationId) {
+		this.designationId = designationId;
+	}
+
+	public Boolean getFirstLogIn() {
+		return firstLogIn;
+	}
+
+	public void setFirstLogIn(Boolean firstLogIn) {
+		this.firstLogIn = firstLogIn;
+	}
+
+	public Project getAssignedToProject() {
+		return assignedToProject;
+	}
+
+	public void setAssignedToProject(Project assignedToProject) {
+		this.assignedToProject = assignedToProject;
+	}
+
+	public Integer getAssignedToProjectId() {
+		return assignedToProjectId;
+	}
+
+	public void setAssignedToProjectId(Integer assignedToProjectId) {
+		this.assignedToProjectId = assignedToProjectId;
+	}
+
+	public String getEmployeeId() {
+		return employeeId;
+	}
+
+	public void setEmployeeId(String employeeId) {
+		this.employeeId = employeeId;
+	}
+
+}

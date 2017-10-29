@@ -1,0 +1,349 @@
+<%@page import="java.awt.Color"%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ page isELIgnored="false"%>
+
+<%@taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>
+<%@ taglib uri="http://www.springframework.org/tags/form" prefix="form"%>
+<%@ taglib uri="http://www.springframework.org/tags" prefix="spring"%>
+<%@ taglib uri="http://java.sun.com/jstl/fmt" prefix="fmt" %>
+	<%@page import="java.util.Calendar"%>
+<%@page import="java.util.GregorianCalendar"%>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+</head>
+<body >
+<style type="text/css">
+
+#myProgress {
+  width: 100%;
+  margin-left:100px;
+  background-color: #ddd;
+}
+#div4{
+display: inline-block;
+
+}
+.limit1
+{
+
+margin-left:500px;
+}
+#myP
+{
+
+margin-left:90%;
+}
+#myBar {
+  width: 0%;
+  height: 30px;
+  
+  text-align: center;
+  line-height: 30px;
+  color: white;
+}
+#trhead
+{
+background-color: rgb(217, 35, 15);
+font-color: #777777;
+
+}
+.table{
+margin-right:100px;
+
+}
+.div1 {
+	margin-left:500px;
+	
+	margin-top: 50px; border : 2px red solid;
+	border-color: #d9230f;
+	display: inline-block;
+	width: 200px;
+	height: 200px;
+	border: 2px red solid;
+}
+
+.div2 {
+	width: 1000px;
+	margin-top: 50px;
+	text-align: center;
+}
+
+.p1 {
+	padding: 20px;
+	background-color: rgb(217, 35, 15);
+	font-color: #777777;
+}
+
+.panel {
+	margin-left: 50px;
+}
+
+.p01:hover {
+	font-size: 150%;
+	text-align: center;
+}
+
+.d01 {
+	text-align: center;
+	margin-top: 50px;
+	font-size: 20px;
+}
+.panel-title
+{
+text-align: center;
+
+}
+</style>
+
+	<div class="container-fluid">
+		<jsp:include page="includes/header.jsp"></jsp:include>
+	
+    <%
+      GregorianCalendar cal = new GregorianCalendar();
+      int currMonth=cal.get(Calendar.MONTH);
+      int finMonth=((currMonth+9)%12);
+    %>
+		<div class="row">
+			<div class="col-sm-3 col-md-2 col-lg-2">
+				<jsp:include page="includes/navigationMenu.jsp"></jsp:include>
+			</div>
+
+			<div class="col-sm-10">
+
+				<%-- ${sessionScope.role } --%>
+				<div class="panel panel-primary  div1">
+					<div class="panel-heading">
+						<h3 class="panel-title">Total Requests</h3>
+					</div>
+					<div class="panel-body d01">
+						<p class="p01">${totalRequest}</p>
+					</div>
+				</div>
+				<div class="panel panel-primary div1">
+					<div class="panel-heading">
+						<h3 class="panel-title">Completed Requests</h3>
+					</div>
+					<div class="panel-body d01">
+						<p class="p01">${completedRequests}</p>
+					</div>
+				</div>
+				<div class="panel panel-primary div1">
+					<div class="panel-heading">
+						<h3 class="panel-title">Saved Requests</h3>
+					</div>
+					<div class="panel-body d01">
+						<p class="p01">${savedRequests}</p>
+					</div>
+				</div>
+				<div class="panel panel-primary div1">
+					<div class="panel-heading">
+						<h3 class="panel-title">In Process</h3>
+					</div>
+					<div class="panel-body d01">
+						<p class="p01">${inProcessRequest}</p>
+					</div>
+				</div>
+
+				<!-- <div class="row">
+				<div class="col-md-4">
+					
+				</div>
+				
+				<div class="col-md-4"> -->
+				<!-- <div class="panel panel-primary div2">
+					<div class="panel-heading">
+						<h3 class="panel-title">PENDING REQUESTS</h3>
+					</div>
+					<div class="panel-body"
+						ng-repeat="pendingRequest in pendingRequestList | orderBy:sortBy">
+					 -->
+
+
+
+				<table class="table table-striped table-hover table-bordered">
+					<thead>
+						<tr class="active">
+							<th>Request Id</th>
+							<th >
+								Request Date</th>
+							<th>Category Name</th>
+							<th>Amount Requested(Rs.)</th>
+							<th>Status</th>
+
+						</tr>
+					</thead>
+
+					<c:forEach var="x" items="${pendingRequests}">
+						<tbody>
+							<tr>
+								
+								<td ><c:out value="${x.id}"></c:out></td>
+								<td  class ="date"><c:out value="${x.createdDate}"></c:out></td>
+		
+
+								<%-- <fmt:formatDate value="${x.createdDate}" var="dateString" pattern="dd/MM/yyyy" /> --%>
+								<td><c:out value="${x.category.name}"></c:out></td>
+								<td class="amount"><c:out value="${x.amountRequested}"></c:out></td>
+								<td><c:if test="${x.state == 'DRAFT'}">
+										<c:out value="${x.state}">
+
+										</c:out>
+										<a href="#"><i class="fa fa-pencil" aria-hidden="true"></i>
+									</c:if> <c:if test="${x.state != 'DRAFT'}">
+										<c:out value="${x.state}"></c:out>
+									</c:if></td>
+
+							</tr>
+						</tbody>
+						
+					
+					</c:forEach>
+				</table>
+				
+				<%-- ${listAllowance} --%>
+				<%-- <c:forEach var="y" items="${pendingRequests}">
+				${y.employee.designation.allowances}
+				</c:forEach> --%>
+				<!-- <h1>Progress Statistics</h1> -->
+<!-- <div class="progress active progress-striped" id="myBar">
+<div class="progress-bar progress-success">
+</div>
+</div>
+			 -->	
+		
+			 <%-- <div class="col-lg-3">
+			 <c:forEach var="x" items="${listAllowance}">
+			${x.employee.designation.allowance}
+			 </c:forEach>
+			 </div> --%>
+			
+    <br>
+
+			 <%-- <div class="col-lg-6">
+			 
+			<div class="col-lg-3">Category Name </div><div id="div4"><b>Amount Consumed & Amount left</b></div>
+			<br>
+			 <c:forEach var="y" items="${listAllowance}">
+			 <c:forEach items="${map}" var="entry">
+			 <div class="col-lg-3">${y.appliesToCategory.name}</div>
+			
+			<div class="progress progress-striped active" >
+ 				 <div class="progress-bar" id="myBar" style="width: 0.5%" data-total=${y.allowanceLimit} data-consumed=${entry.value}>
+ 				 </div></div>
+ 				 <div class="limit1"><%=finMonth%>
+ 				 ${entry.value}/
+					${(y.allowanceLimit/12)*6}</div> </c:forEach></c:forEach>
+					
+					</div> --%> <br>
+						
+						
+				</div>
+			</div>
+		</div>
+	</div> 
+	
+	<script>
+		
+		function getPercent( reference, total ) {
+			/* var totalByMonth=(total / 2 ); */
+			var limit_left = total - reference,
+				limit_left_percent = ( reference / total ) * 100;
+				
+				//limit_consumed_percent = 100 - limit_left_percent;
+			return limit_left_percent;
+		}
+	
+		function move() {
+			
+		    
+			var elem = document.getElementById("myBar"),
+				elements = $( '.progress-bar' ),
+				_ctr = 0,
+				_totalNodes = elements.length,
+				_calculatedWidth = 0,
+				_tempEl = null;
+			
+			for ( _ctr; _ctr < _totalNodes; _ctr = _ctr + 1 ) {
+				_tempEl = $( elements[ _ctr ] );
+				_calculatedWidth = getPercent( 
+						parseInt( _tempEl.data( 'consumed' ) ), 
+						parseInt( _tempEl.data( 'total' ) ) 
+					);
+				_tempEl.css( 'width', _calculatedWidth + '%' );
+			}
+			
+			//var width = 10;
+			
+			
+			//var id = setInterval(frame, 10);
+			
+			/* var total_limit = totalLimit;
+			var limit_consumed = limitConsumed; */
+			
+			/* var limit_left = totalLimit - limitConsumed;
+			var limit_left_percent = ( limit_left / totalLimit ) * 100;
+			var limit_consumed_percent = 100 - limit_left_percent; */
+			//debugger;
+			/* function frame() {
+				if (width >= 100) {
+					clearInterval(id);
+				} else {
+					var _ctr = 0,
+						_totalNodes = elements.length,
+						_calculatedWidth = 0;
+					
+					for ( _ctr; _ctr < _totalNodes; _ctr = _ctr + 1 ) {
+						_calculatedWidth = getPercent( 
+								parseInt( elements[ _ctr ].data( 'consumed' ) ), 
+								parseInt( elements[ _ctr ].data( 'total' ) ) 
+							);
+						elements[ _ctr ].css( 'width', calculatedWidth + '%' );
+					}
+
+				}
+			} */
+		}
+		
+		//move(  );
+	
+	$( document ).ready( function() {
+		$( '.date' ).each( function() {  
+			 var date = $( this ).get( 0 ).innerHTML.split( ' ' )[ 0 ];
+			 $( this ).get( 0 ).textContent = date;
+			});
+		
+		 $( '.amount' ).each( function() {  
+			 var amount = $( this ).get( 0 ).innerHTML;
+			 var amount_seprator=amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+			
+			 $( this ).get( 0 ).textContent = amount_seprator; 
+		 });
+		 
+		 move();
+		 
+		 /* $( '#myBar' ).each(function(){
+			 var width = 10;
+			 var id = setInterval(frame, 10);
+				var total_limit = $(this).getAllowanceLimit(0).innerHTML;
+				var limit_consumed = 2000;
+				var limit_left = total_limit - limit_consumed;
+				var limit_left_percent = (limit_left / total_limit) * 100;
+				var limit_consumed_percent = 100 - limit_left_percent;
+				function frame() {
+					if (width >= 100) {
+						clearInterval(id);
+					} else {
+						width = limit_consumed_percent;
+						elem.style.width = width + '%';
+
+					}
+				}
+		 }); */
+} );
+		
+</script>
+</body>
+</html>

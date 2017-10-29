@@ -1,0 +1,292 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8"%>
+<%@ page isELIgnored="false"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+<style>
+div#mySidenav, div#myEditSidenav {
+	height: 100%;
+	width: 0;
+	position: fixed;
+	z-index: 1;
+	top: 0;
+	right: 0;
+	overflow-x: hidden;
+	transition: 0.5s;
+	margin-top: 60px;
+}
+
+.tab {
+	margin-top: 100px;
+}
+</style>
+</head>
+<body ng-app="adminApp" data-ng-controller="adminCtrl">
+
+
+	<div class="container-fluid">
+		<jsp:include page="includes/header.jsp"></jsp:include>
+		<div class="row">
+			<div class="col-sm-3 col-md-2 col-lg-2">
+				<jsp:include page="includes/navigationMenu.jsp"></jsp:include>
+			</div>
+			<div class="col-lg-10">
+				<form class="form-horizontal">
+					<fieldset>
+						<legend class="text-left">Category Based Expense Management</legend>
+						<div class="form-group">
+							<div class="col-lg-5">
+								<input type="text" class="form-control" ng-model="searchDesignation"
+									placeholder="Search Designation ">
+							</div>
+							<div class="col-lg-4 col-lg-offset-3">
+								<span class="btn btn-primary" onclick="openNav()">Add
+									Designation</span>
+							</div>
+						</div>
+						<div class="form-group tab">
+							<div class="col-lg-10">
+								<table class="table table-striped table-hover table-bordered ">
+									<thead>
+										<tr>
+											<th ng-click="orderByMe('designationId')">Designation Id</th>
+											<th ng-click="orderByMe('name')">Designation Hierarchy</th>
+											<th ng-click="orderByMe('activationStatus')">Status</th>
+											<th ng-click="orderByMe('approvalStatus')">Can Manage</th>
+											<th>View & Update</th>
+											
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="active" ng-repeat="(i,designation) in designationList | filter: searchDesignation | orderBy:myOrderBy">
+											<td>{{designation.designationId}}</td>
+											<td>{{designation.name}}</td>
+											<td>{{designation.activationStatus}}</td>
+											<td>{{designation.approvalStatus}}</td>
+											<td><input type="button" class="btn btn-default btn-xs"
+												value="View & Update" data-ng-click="EditDesignation(designation)"/></td>
+										</tr>
+									</tbody>
+								</table>
+							</div>
+						</div>
+					</fieldset>
+				</form>
+			</div>
+		</div>
+	</div>
+	<!-- ADD NEW DESIGNATION -->
+	<div class="sidenav" id="mySidenav">
+		<div class="row">
+			<div class="col-md-2"></div>
+			<div class="col-md-9">
+				<div class="panel panel-primary">
+					<div class="panel-heading">
+						<h3 class="panel-title">
+							Add Designation <a class="pull-right" onclick="closeNav()">&times;</a>
+						</h3>
+					</div>
+					<div class="panel-body">
+						<form role="form" action="addDesignation" method="post" id="addForm">
+							<div class="form-group">
+								<label for="name"> Enter Designation Title </label> <input
+									type="text" class="form-control" id="name" name="name"
+									required="required" placeholder="Designation Title" />
+							</div>
+							<div class="checkbox">
+								<label> <input type="checkbox" checked="checked"
+									name="hasApprovalAuthority"> Can Manage
+								</label>
+							</div>
+							<div class="checkbox">
+								<label> <input type="checkbox" checked="checked"
+									name="enabled"> Active
+								</label>
+							</div>
+							<div>
+								<table class="table table-striped table-hover table-bordered ">
+									<thead>
+										<tr>
+											<th>Category Name</th>
+											<th>Amount</th>
+										</tr>
+									</thead>
+									<tbody>
+										<tr class="active" ng-repeat="category in categoryList">
+										
+											<td>{{category.name}}
+												<input type="hidden" data-ng-model="AllowanceList[$index].appliesToCategoryId" 
+												data-ng-init="AllowanceList[$index].appliesToCategoryId=category.id" 
+												readonly>
+												
+											</td>
+											<td><input type="text" class="form-control" id="allowanceLimit"
+												data-ng-model="AllowanceList[$index].allowanceLimit" required="required" placeholder="Max. Amount" /></td>
+										
+										</tr>
+									</tbody>
+								</table>
+								<input type="hidden" name="allowanceList" value="{{AllowanceList}}"/>
+							</div>
+							<input type="submit" class="btn btn-default" value="Add Designation"/>
+								
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- EDIT DESIGNATION -->
+	<div class="sidenav" id="myEditSidenav">
+		<div class="row">
+			<div class="col-md-2"></div>
+			<div class="col-md-9">
+				<div class="panel panel-primary">
+					<div class="panel-heading">
+						<h3 class="panel-title">
+							Edit Designation <a class="pull-right" onclick="closeEditNav()">&times;</a>
+						</h3>
+					</div>
+					<div class="panel-body">
+						<form role="form" action="updateDesignation" method="post">
+							<input type="hidden" name="id" value="{{DesignationModel.id}}" /> 
+							<input type="hidden" name="createdBy" value="{{DesignationModel.createdBy}}" /> 
+							<input type="hidden" name="createdDate" value="{{DesignationModel.createdDate}}" /> 
+							<input type="hidden" name="designationId" value="{{DesignationModel.designationId}}" /> 
+							
+							<div class="form-group">
+								<label for="name"> Enter Designation Title </label> <input
+									type="text" class="form-control" id="name" name="name" data-ng-model="DesignationModel.name"
+									required="required" placeholder="Designation Title" />
+							</div>
+							<div class="checkbox">
+								<label> <input type="checkbox" data-ng-model="DesignationModel.hasApprovalAuthority"
+									name="hasApprovalAuthority"> Can Manage
+								</label>
+							</div>
+							<div class="checkbox">
+								<label> <input type="checkbox" data-ng-model="DesignationModel.enabled"
+									name="enabled"> Active
+								</label>
+							</div>
+							
+							<div>
+								<table class="table table-striped table-hover table-bordered ">
+									<thead>
+										<tr>
+											<th>Category Name</th>
+											<th>Amount</th>
+										</tr>
+									</thead>
+									<tbody class="active" ng-repeat="allowances in DesignationModel.allowances" >
+										<tr ng-if="allowances.appliesToCategory.enabled == true">
+									  
+											<td>{{allowances.appliesToCategory.name}}
+											<input type="hidden" class="form-control" id="allowanceLimit"
+												name="allowanceLimit" required="required" placeholder="Max. Amount" data-ng-model="AllowanceListEdited[$index].id"
+												data-ng-init="AllowanceListEdited[$index].id=allowances.id" />
+											
+											<input type="hidden" data-ng-model="AllowanceListEdited[$index].appliesToCategoryId" 
+												data-ng-init="AllowanceListEdited[$index].appliesToCategoryId=allowances.appliesToCategoryId" />
+											
+											</td>
+											<td><input type="text" class="form-control" id="allowanceLimit"
+												name="allowanceLimit" required="required" placeholder="Max. Amount" data-ng-model="AllowanceListEdited[$index].allowanceLimit"
+												data-ng-init="AllowanceListEdited[$index].allowanceLimit=allowances.allowanceLimit" /></td>
+											
+										</tr>
+									</tbody>
+								</table>
+							</div>
+							
+							<input type="hidden" name="allowanceListEdited" value="{{AllowanceListEdited}}"/>
+							<button type="submit" class="btn btn-default">Update</button>
+						</form>
+
+
+					</div>
+				</div>
+			</div>
+			<div class="col-md-1"></div>
+		</div>
+	</div>
+
+	<script type="text/javascript">
+	function openNav() {
+		document.getElementById("mySidenav").style.width = "100%";
+	}
+	function openEditNav() {
+		document.getElementById("myEditSidenav").style.width = "100%";
+	} 
+
+	function closeNav() {
+		document.getElementById("mySidenav").style.width = "0%";
+	} 
+	function closeEditNav() {
+		document.getElementById("myEditSidenav").style.width = "0%";
+	}   
+
+
+		var app = angular.module("adminApp", []);
+		app.controller('adminCtrl', function($scope) {
+			
+			$scope.designationList = ${designations};
+			$scope.categoryList=${categories};
+			
+			var _ctr = 0,
+			_totalDesignation =  $scope.designationList.length,
+			_designation = null;
+
+			for ( _ctr; _ctr < _totalDesignation; _ctr = _ctr + 1 ) {
+			_designation = $scope.designationList[ _ctr ];
+			$scope.designationList[ _ctr ].activationStatus = _designation.enabled ? 'Active' : 'Deactive';
+			$scope.designationList[ _ctr ].approvalStatus = _designation.hasApprovalAuthority ? 'Active' : 'Deactive';
+			}
+			
+			
+			$scope.DesignationModel={
+					designstionId:'',
+					name:'',
+					createdBy:'',
+					createdDate:'',
+					hasApprovalAuthority:'',
+					enabled:'',
+					allowances:''
+			}
+			
+			$scope.AllowanceList=[];
+			
+			
+			$scope.AllowanceListEdited=[];
+			
+			$scope.EditDesignation=function(designation){
+				debugger;
+				document.getElementById("myEditSidenav").style.width = "100%";
+				$scope.DesignationModel.id=designation.id;
+				$scope.DesignationModel.designationId=designation.designationId;
+				$scope.DesignationModel.name=designation.name;
+				$scope.DesignationModel.createdBy=designation.createdBy;
+				$scope.DesignationModel.createdDate=designation.createdDate;
+				$scope.DesignationModel.hasApprovalAuthority=designation.hasApprovalAuthority;
+				$scope.DesignationModel.enabled=designation.enabled;
+				$scope.DesignationModel.allowances=designation.allowances;
+				$scope.AllowanceListEdited.push();
+			}
+			
+			function ClearModel(){
+				$scope.AllowanceModel.appliesToCategory='';
+				$scope.AllowanceModel.allowanceLimit='';
+			}
+			$scope.orderByMe = function(x) {
+				$scope.myOrderBy = x;
+			}
+			
+		});
+		
+	</script>
+</body>
+</html>

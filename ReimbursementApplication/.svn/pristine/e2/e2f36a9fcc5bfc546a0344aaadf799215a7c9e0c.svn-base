@@ -1,0 +1,301 @@
+package com.avizva.controller;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import javax.servlet.http.HttpSession;
+import javax.validation.Valid;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.avizva.dao.CategoryDAO;
+import com.avizva.enums.CategoryType;
+import com.avizva.model.Allowance;
+import com.avizva.model.Category;
+import com.avizva.model.Designation;
+import com.avizva.model.Employee;
+import com.avizva.model.Project;
+import com.avizva.service.AllowanceService;
+import com.avizva.service.CategoryService;
+import com.avizva.service.DesignationService;
+import com.avizva.service.EmployeeService;
+import com.avizva.service.ProjectService;
+import com.avizva.utility.JsonConverter;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+@Controller
+public class AdminController {
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	@Autowired
+	DesignationService designationService;
+
+	@Autowired
+	CategoryService categoryService;
+
+	@Autowired
+	AllowanceService allowanceService;
+
+	@Autowired
+	CategoryDAO categoryDao;
+
+	@Autowired
+	ProjectService projectService;
+
+	@Autowired
+	EmployeeService employeeService;
+
+	@RequestMapping("/manageDesignation")
+	public ModelAndView manageDesignation(HttpSession session) {
+		List<Designation> designationList = designationService.getActiveAndDeactiveDisgination();
+		List<Category> categoryList = categoryDao.viewAllCategory().stream().filter((category) -> {
+			return category.getType() == CategoryType.PAYROLL;
+		}).collect(Collectors.toList());
+
+		for (Designation d : designationList) {
+			d.getAllowances().forEach(allowance -> allowance.setAppliesToDesignation(null));
+		}
+		String designations = JsonConverter.toJSON(designationList);
+		String categories = JsonConverter.toJSON(categoryList);
+
+		return new ModelAndView("manageDesignation").addObject("designations", designations).addObject("categories",
+				categories);
+	}
+
+	@RequestMapping("/addDesignation")
+	public ModelAndView addDesignation(@Valid @ModelAttribute("Designation") Designation designation,
+			@RequestParam String AllowanceList, HttpSession session) {
+
+		Gson gson = new Gson();
+		Type type = new TypeToken<List<Object>>() {
+		}.getType();
+		List<Object> list = gson.fromJson(AllowanceList, type);
+		List<Map<String,String>> mapList=new ArrayList<Map<String,String>>();
+		for (Object l : list) {
+			String jList = gson.toJson(l);
+			Type type1 = new TypeToken<Map<String, Object>>() {
+			}.getType();
+			Map<String, Object> mapObj = gson.fromJson(jList, type1);
+			Iterator it = mapObj.entrySet().iterator();
+			while (it.hasNext()) {
+				Map.Entry pair = (Map.Entry) it.next();
+				String jStr = gson.toJson(pair.getValue());
+
+				Type type2 = new TypeToken<Map<String, String>>() {
+				}.getType();
+				Map<String, String> mapStr = gson.fromJson(jStr, type2);
+				mapList.add(mapStr);
+			}
+
+		}
+		designation.setAllowances(null);
+
+		Designation addedDesignation = designationService.addDesignation(designation,
+				session.getAttribute("name").toString());
+
+		for (Map<String, String> strList : mapList) {
+			Allowance allowance = new Allowance();
+			allowance.setAppliesToCategoryId((int) Float.parseFloat(strList.get("appliesToCategoryId")));
+			allowance.setAllowanceLimit(Float.parseFloat(strList.get("allowanceLimit")));
+			allowance.setAppliesToDesignationId(addedDesignation.getId());
+			allowance.setEnabled(true);
+			allowance.setAppliesToCategory(null);
+			allowance.setAppliesToDesignation(null);
+			System.out.println(strList.get("allowanceLimit"));
+			System.out.println((int) Float.parseFloat(strList.get("appliesToCategoryId")));
+			allowanceService.addAllowance(allowance, session.getAttribute("name").toString());
+		}
+		
+//		Category disabledCategories=categoryService.
+		return new ModelAndView("redirect:/manageDesignation").addObject("msg", "New designation added");
+
+	}
+
+	@RequestMapping("/updateDesignation")
+	public ModelAndView updateDesignation(@Valid @ModelAttribute("Designation") Designation designation,
+			HttpSession session, @RequestParam String allowanceListEdited) {
+		
+		Gson gson = new Gson();
+		Type type = new TypeToken<List<Object>>() {
+		}.getType();
+		List<Object> list = gson.fromJson(allowanceListEdited, type);
+		List<Map<String, String>> mapList = new ArrayList<Map<String, String>>();
+		for (Object l : list) {
+			String jList = gson.toJson(l);
+			Type type1 = new TypeToken<Map<String, Object>>() {
+			}.getType();
+			Map<String, Object> mapObj = gson.fromJson(jList, type1);
+			Iterator it = mapObj.entrySet().iterator();
+			while (it.hasNext()) {
+				Map.Entry pair = (Map.Entry) it.next();
+				String jStr = gson.toJson(pair.getValue());
+
+				Type type2 = new TypeToken<Map<String, String>>() {
+				}.getType();
+				Map<String, String> mapStr = gson.fromJson(jStr, type2);
+				mapList.add(mapStr);
+			}
+
+		}
+		designation.setAllowances(null);
+		Designation updatedDesignation = designationService.updateDesignation(designation,
+				session.getAttribute("name").toString());
+
+		LOGGER.debug("Designation's id: " + designation.getId());
+
+		for (Map<String, String> strList : mapList) {
+			System.out.println((int) Float.parseFloat(strList.get("id")));
+			Allowance allowance = allowanceService.viewAllowanceById((int) Float.parseFloat(strList.get("id")));
+			System.out.println(allowance.getAllowanceId());
+			allowance.setAppliesToCategoryId((int) Float.parseFloat(strList.get("appliesToCategoryId")));
+			allowance.setAllowanceLimit(Float.parseFloat(strList.get("allowanceLimit")));
+			allowanceService.updateAllowance(allowance, session.getAttribute("name").toString());
+		}
+
+		return new ModelAndView("redirect:/manageDesignation").addObject("msg", "Designation successfully updated");
+
+	}
+
+	@RequestMapping("/categorymanagement")
+	public ModelAndView manageCategory() {
+		List<Category> categoryList = categoryService.viewAllCategories();
+		List<String> names = new ArrayList<>();
+		for (Category c : categoryList) {
+			names.add(c.getName());
+		}
+		List<CategoryType> categoryType = new ArrayList<>();
+		EnumSet.allOf(CategoryType.class).forEach((x) -> {
+			categoryType.add(x);
+		});
+		String categories = JsonConverter.toJSON(categoryList);
+		String categoryNames = JsonConverter.toJSON(names);
+		return new ModelAndView("managecategory").addObject("categories", categories)
+				.addObject("categoryNames", categoryNames)
+				.addObject("categoryType", JsonConverter.toJSON(categoryType));
+
+	}
+
+	@RequestMapping("/registercategory")
+	public ModelAndView registerCategory(@ModelAttribute("Category") Category category, HttpSession session) {
+
+		String name = category.getName();
+		List<Category> categories = categoryService.viewAllCategories();
+		Boolean exist = false;
+		for (Category c : categories) {
+			if (name.equalsIgnoreCase(c.getName())) {
+				exist = true;
+				break;
+			}
+		}
+		if (exist == true) {
+			return new ModelAndView("redirect:/categorymanagement?msg= Category Name already exists");
+		}
+		Category categoryAdded = categoryService.addCategory(category,
+				session.getAttribute("name") + " " + session.getAttribute("id"));
+		if (categoryAdded != null) {
+			return new ModelAndView("redirect:/categorymanagement?msg=Category Added Successfully");
+		} else {
+			return new ModelAndView("redirect:/categorymanagement?msg=Category Not Added");
+		}
+
+	}
+
+	@RequestMapping("/updatecategory")
+	public ModelAndView updateEmployee(@ModelAttribute("Category") Category category, HttpSession session) {
+
+		Category categoryUpdated = categoryService.updateCategory(category,
+				session.getAttribute("name") + " " + session.getAttribute("id"));
+		if (categoryUpdated != null) {
+			return new ModelAndView("redirect:/categorymanagement?msg=Category Updated Successfully");
+		} else {
+			return new ModelAndView("redirect:/categorymanagement?msg=Category Already Exists");
+		}
+	}
+
+	@RequestMapping("/projectmanagement")
+	public ModelAndView manageProject() {
+		List<Project> projectList = projectService.getActiveAndDeactiveProject();
+		List<Employee> managerList = new ArrayList<>();
+		for (Project p : projectList) {
+			managerList.add(employeeService.getEmployeeById(p.getHeadedByEmployeeId()));
+			p.setHeadedByEmployee(null);
+
+		}
+		for (Employee e : managerList) {
+			e.setAssignedToProject(null);
+			e.setDesignation(null);
+			e.setRequests(null);
+			e.setRole(null);
+
+		}
+		List<Employee> allEmployee = employeeService.getAllEmployee();
+		List<Employee> newManagers = new ArrayList<>();
+		for (Employee e : allEmployee) {
+
+			if (designationService.getDesignationById(e.getDesignationId()).getHasApprovalAuthority() != null) {
+				newManagers.add(e);
+			}
+		}
+		for (Employee e : newManagers) {
+			e.setAssignedToProject(null);
+			e.setDesignation(null);
+			e.setRequests(null);
+			e.setRole(null);
+		}
+
+		return new ModelAndView("manageproject").addObject("projects", JsonConverter.toJSON(projectList))
+				.addObject("managers", JsonConverter.toJSON(managerList))
+				.addObject("newManagers", JsonConverter.toJSON(newManagers));
+	}
+
+	@RequestMapping("/registerproject")
+	public ModelAndView registerProject(@ModelAttribute("Project") Project project, HttpSession session) {
+
+		String name = project.getName();
+		List<Project> projects = projectService.getActiveAndDeactiveProject();
+		Boolean exist = false;
+		for (Project p : projects) {
+			if (name.equalsIgnoreCase(p.getName())) {
+				exist = true;
+				break;
+			}
+		}
+		if (exist == true) {
+			return new ModelAndView("redirect:/projectmanagement?msg= Project Name already exists");
+		}
+		Project projectAdded = projectService.addProject(project,
+				session.getAttribute("name") + " " + session.getAttribute("id"));
+		if (projectAdded != null) {
+			return new ModelAndView("redirect:/projectmanagement?msg=Project Added Successfully");
+		} else {
+			return new ModelAndView("redirect:/projectmanagement?msg=Project Not Added");
+		}
+
+	}
+
+	@RequestMapping("/updateproject")
+	public ModelAndView updateProject(@ModelAttribute("Project") Project project, HttpSession session) {
+
+		Project projectUpdated = projectService.updateProject(project,
+				session.getAttribute("name") + " " + session.getAttribute("id"));
+		if (projectUpdated != null) {
+			return new ModelAndView("redirect:/projectmanagement?msg=Project Updated Successfully");
+		} else {
+			return new ModelAndView("redirect:/projectmanagement?msg=Project Not Updated");
+		}
+	}
+
+}

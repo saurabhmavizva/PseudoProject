@@ -1,0 +1,160 @@
+package com.avizva.dao.impl;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.avizva.constants.ExceptionMessages;
+import com.avizva.constants.IdConstants;
+import com.avizva.dao.DesignationDAO;
+import com.avizva.exception.DaoException;
+import com.avizva.model.Designation;
+
+/**
+ * This class provides methods for CRUD operations on Designation model
+ * 
+ * @author Campus2017
+ *
+ */
+@Repository
+public class DesignationDAOImpl implements DesignationDAO {
+
+	@Autowired
+	private SessionFactory sessionFactory;
+
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	/**
+	 * This method is used to add a new Designation in the database
+	 * 
+	 * @param designation
+	 * @return saved designation object
+	 * @throws DaoException
+	 */
+	@Transactional
+	public Designation addDesignation(Designation designation) throws DaoException {
+		if (null == designation) {
+			LOGGER.error("Unexpected parameter sent");
+			throw new DaoException(ExceptionMessages.NULL_PARAMETER_PROVIDED);
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Saving new desination with name" + designation.getName());
+		designation.setCreatedDate(new Date());
+		designation.setModifiedDate(new Date());
+		designation.setEnabled(true);
+		try {
+			session.save(designation);
+			designation.setDesignationId(IdConstants.DESIGNATION_ID + String.format("%1$07d", designation.getId()));
+			session.flush();
+		} catch (Exception e) {
+			LOGGER.error("Exception occured while saving designation", e);
+			throw new DaoException(e.getMessage());
+		} finally {
+			session.clear();
+		}
+		LOGGER.info("Successfully added new designation");
+		return designation;
+	}
+
+	/**
+	 * This method is used to delete the designation
+	 * 
+	 * @param designation
+	 * @return deleted designation object
+	 */
+	@Transactional
+	public Designation deleteDesignation(Designation designation) {
+		if (null == designation || null == designation.getId()) {
+			LOGGER.error("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Deleting designation object with id " + designation.getId());
+		designation.setModifiedDate(new Date());
+		session.delete(designation);
+		LOGGER.info("Successfully deleted designation object");
+		return designation;
+	}
+
+	/**
+	 * This method is used to update the Designation model
+	 * 
+	 * @param designation
+	 * @return updated designation object
+	 * @throws DaoException
+	 */
+
+	@Transactional
+	public Designation updateDesignation(Designation designation) throws DaoException {
+		if (null == designation || null == designation.getId()) {
+			LOGGER.error("Unexpected parameter sent");
+			throw new DaoException(ExceptionMessages.NULL_PARAMETER_PROVIDED);
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Updating designation object with id" + designation.getDesignationId());
+		designation.setModifiedDate(new Date());
+		try {
+			session.update(designation);
+			session.flush();
+		} catch (Exception e) {
+			LOGGER.error("Exception occured while updating designation", e);
+			throw new DaoException(e.getMessage());
+		} finally {
+			session.clear();
+		}
+		LOGGER.info("Successfully updated designation object");
+		return designation;
+	}
+
+	/**
+	 * This method is used to fetch the Designation from the name
+	 * 
+	 * @param id
+	 * @return designation object with given id
+	 */
+	@Transactional
+	public Designation viewDesignationById(Integer id) {
+		if (id == null) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Fetching designation object with id " + id);
+		return session.get(Designation.class, id);
+	}
+
+	/**
+	 * This method returns all the Designation from the database
+	 * 
+	 * @return List of enabled designations
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<Designation> viewAllDesignation() {
+		Session session = sessionFactory.getCurrentSession();
+		Query query = session.createQuery("from Designation where enabled=true");
+		return query.list();
+	}
+
+	/**
+	 * This method returns all the Designation from the database
+	 * 
+	 * @return List of enabled designations
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<Designation> viewActiveAndDeactiveDesignation() {
+		Session session = sessionFactory.getCurrentSession();
+		Query query = session.createQuery("from Designation order by designationid asc");
+		return query.list();
+	}
+
+}

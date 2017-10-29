@@ -1,0 +1,143 @@
+package com.avizva.dao.impl;
+
+import java.util.Date;
+import java.util.List;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.avizva.constants.IdConstants;
+import com.avizva.dao.CategoryDAO;
+import com.avizva.model.Category;
+
+/**
+ * This class provides method for database interactions for Category model
+ * 
+ * @author Campus2017
+ *
+ */
+@Repository
+public class CateogoryDAOImpl implements CategoryDAO {
+
+	@Autowired
+	private SessionFactory sessionFactory;
+
+	private static final Logger LOGGER = LogManager.getLogger();
+
+	/**
+	 * This method is used to Add Category in the Database
+	 * 
+	 * @param category
+	 * @return Category The saved category object
+	 */
+	@Transactional
+	public Category addCategory(Category category) {
+		if (null == category) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Saving new category object " + category.getName());
+		category.setCreatedDate(new Date());
+		category.setModifiedDate(new Date());
+		category.setEnabled(true);
+		session.save(category);
+		category.setCategoryId(IdConstants.CATEGORY_ID + String.format("%1$07d", category.getId()));
+		LOGGER.info("Category object saved successfully " + category.getCategoryId());
+		return category;
+	}
+
+	/**
+	 * This method is used to delete Category
+	 * 
+	 * @param category
+	 * @return Deleted category object
+	 */
+	@Transactional
+	public Category deleteCategory(Category category) {
+		if (null == category || null == category.getId()) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Deleting category object form db " + category.getId());
+		category.setModifiedDate(new Date());
+		session.delete(category);
+		LOGGER.info("Successfully deleted category object");
+		return category;
+	}
+
+	/**
+	 * This method is used to update Category in the Database
+	 * 
+	 * @param category
+	 * @return updated category object
+	 */
+
+	@Transactional
+	public Category updateCategory(Category category) {
+		if (null == category || null == category.getId()) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Updating category object with id" + category.getCategoryId());
+		category.setModifiedDate(new Date());
+		session.update(category);
+		LOGGER.info("Successfully updated category object");
+		return category;
+	}
+
+	/**
+	 * This method is used to fetch the Category from the id
+	 * 
+	 * @param categoryId
+	 * @return category object with given id
+	 */
+	@Transactional
+	public Category viewCategoryById(Integer categoryId) {
+		if (null == categoryId) {
+			LOGGER.info("Unexpected parameter sent");
+			return null;
+		}
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Fetching category object with id " + categoryId);
+		return session.get(Category.class, categoryId);
+	}
+
+	/**
+	 * This is used to fetch all the categories from the Database
+	 * 
+	 * @return list of all enabled category objects
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<Category> viewAllCategory() {
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Fetching all  category objects");
+		Query query = session.createQuery("from Category where enabled = true");
+		return query.list();
+	}
+
+	/**
+	 * This is used to fetch all the categories from the Database including the
+	 * disabled ones
+	 * 
+	 * @return list of all enabled category objects
+	 */
+	@SuppressWarnings("unchecked")
+	@Transactional
+	public List<Category> viewActiveAndDeactiveCategory() {
+		Session session = sessionFactory.getCurrentSession();
+		LOGGER.info("Fetching all  category objects");
+		Query query = session.createQuery("from Category order by categoryid asc");
+		return query.list();
+	}
+
+}

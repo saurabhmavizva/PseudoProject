@@ -1,0 +1,455 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+	pageEncoding="UTF-8" isELIgnored="false"%>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Edit Saved</title>
+<style>
+
+div#mySidenav {
+	height: 100%;
+	width: 100%;
+	position: fixed;
+	z-index: 1;
+	top: 0;
+	right: 0;
+	overflow-x: hidden;
+	margin-top: 0px;
+	transition: transform 0.2s linear;
+	transform: translateY(-100%);
+}
+
+#display{
+	margin-top:10px;
+}
+
+</style>
+</head>
+<body ng-app="addApp" data-ng-controller="addCtrl">
+
+
+<div class="container-fluid">
+	<jsp:include page="includes/header.jsp"></jsp:include>
+	<div class="row">
+		<div class="col-sm-3 col-md-2 col-lg-2">
+			<jsp:include page="includes/navigationMenu.jsp"></jsp:include>
+		</div>
+		<div class="col-lg-10" >
+			<form class="form-horizontal" name="mainForm" id="formsubmit" method="post">
+               <fieldset>
+                  <legend>ADD REIMBURSEMENT</legend>
+   
+                    <div class="form-group">
+                        <label for="selectType" class="col-lg-1 control-label" >Type</label>
+                            <div class="col-lg-4">
+                                <select class="form-control" disabled>
+                                	<option selected="selected"> {{type}} </option>
+                                </select>
+                            </div>
+                    
+                        <label for="selectCategory" class="col-lg-1 control-label">Category</label>
+                            <div class="col-lg-4">
+                                <select class="form-control" disabled>
+                                	<option selected="selected"> {{request.category.name}} </option>
+                                </select>
+                            </div>
+                    </div>
+                    <input type="hidden" name="categoryId" value="{{request.category.id}}"/>
+                    <input type="hidden" name="managerName" value="{{managerName}}"/>
+                    <input type="hidden" name="isEdit" value="{{request.id}}"/>
+                    
+                    <div class="form-group" ng-show="request.category.type=='NON_PAYROLL'">
+                        <label class="col-lg-1 control-label">Project</label>
+                            <div class="col-lg-4">
+                                <p id="display">{{projectName}}</p>
+                            </div>
+                    
+                        <label class="col-lg-1 control-label">Manager</label>
+                            <div class="col-lg-4">
+                                <p id="display">{{managerName}}</p>
+                            </div>
+                    </div>
+                    
+                    <div class="form-group">
+                       <div class="col-lg-6 col-lg-offset-1">
+                           <span class="btn btn-primary" id="itemAddBtn" ng-disabled="mainForm.$invalid" onclick="openNav()" >Add Item</span>
+                       </div>
+                    </div>
+                    
+                    <div class="form-group">
+                       <div class="col-lg-10 col-lg-offset-1">
+                           <table class="table table-striped table-hover ">
+  								<thead>
+    								<tr>
+      									<th>#</th>
+      									<th>Bill No.</th>
+      									<th>Bill Date</th>
+     									<th>Amount</th>
+      									<th>Currency</th>
+     									<th>Options</th>
+    								</tr>
+ 								 </thead>
+ 								 <tbody>
+    								<tr class="active" ng-repeat="Item in request.items">
+      									<td>{{$index + 1}}</td>
+      									<td>{{Item.billNumber}}</td>
+      									<td>{{Item.billDate | date: "dd-MM-yyyy"}}</td>
+      									<td>{{Item.amount}}</td>
+      									<td>{{Item.currency}}</td>
+     									<td>
+     										<input type="button" class="btn btn-default btn-xs" value="Edit Item" data-ng-click="EditItem(Item)"/>
+     										<input type="button" class="btn btn-default btn-xs" value="Delete" data-ng-click="DeleteItem(Item)"/>
+     									        </td>
+    								</tr>
+  								</tbody>
+							</table>
+                       </div>
+                    </div>
+                    
+                    <input type="hidden" name="itemsList" value="{{ItemList}}"/>
+                    <div class="form-group">
+                       <div class="col-lg-6 col-lg-offset-5">
+                           <input type="submit" disabled id="savebtn" class="btn btn-default" value="Save"/>
+                           <input type="submit" disabled  id="submitbtn" class="btn btn-primary" value="Submit" />
+                           <input type="submit" id="deletebtn" class="btn btn-info pull-right" value="Delete Request" /> 
+                       </div>
+                    </div>
+               </fieldset>
+            </form>
+		</div>
+	</div>
+</div>	
+	<div class="sidenav" id="mySidenav">
+		<div class="col-md-9 col-md-offset-2">
+			<div class="panel panel-primary">
+				<div class="panel-heading">
+							<div class="panel-title">
+								ADD REIMBURSEMENT ITEM
+								<a class="pull-right" onclick="closeNav()" style="cursor: pointer;"> <i class="fa fa-window-close" aria-hidden="true"></i></a>
+							</div>
+				</div>
+				<div class="panel-body">
+					 <form id="itemForm" name="itemForm">
+						<div class="form-group col-md-12">	 
+							<label for="billNumber">
+								Enter Bill Number
+							</label>
+							<input type="text" class="form-control" maxlength="20" title="Bill Number Cannot be Empty" id="billNumber" data-ng-model="ItemModel.billNumber" ng-required="true" />
+						</div>
+						<div class="form-group col-md-12">	 
+							<label for="billDate">
+								Enter Bill Date
+							</label>
+							<input type="date" id="billDate" max="{{maxDate | date:'yyyy-MM-dd'}}" ng-required="true" class="form-control"  data-ng-model="ItemModel.billDate" >
+						</div>
+						
+						<div class="form-group">
+						    <label for="billAmount" class="col-md-2">
+								Amount
+							</label>
+							<div class="col-md-3">
+							    <input type="text" class="form-control" title="Amount cannot have Letters" pattern="([1-9]+[0-9]*)(\.([0-9]{1,2}))?" id="billAmount" data-ng-model="ItemModel.amount" ng-required="true" />
+							</div> 
+							<div ng-if="type === 'PAYROLL'" >
+							<div ng-if="ItemModel.amount > allowanceMap[selectedCategory.name]"  > <span style="color: red">Your maximum limit is:{{allowanceMap[selectedCategory.name]}} </span>
+							</div>
+							
+							</div>
+							<label for="billCurrency" class="col-md-2 col-md-offset-2">
+								Currency
+							</label>
+							<div class="col-md-3">
+                                
+                                <select class="form-control" id="billCurrency" ng-required="true" data-ng-model="ItemModel.currency">
+                                	 <option selected value="INR" >INR</option>
+                                	 <option ng-repeat="currency in currencies">{{currency}}</option>
+                                </select>
+							</div>
+							
+						</div>
+						
+						<div class="form-group col-md-12">	 
+							<label for="description">
+								Enter Description
+							</label>
+							<textarea class="form-control" maxlength="200" id="description" data-ng-model="ItemModel.description" rows="3" ></textarea>
+						</div>
+						
+						<div class="form-group col-md-12">
+						    <label for="chooseFile" class="col-md-2">
+								Invoice
+							</label>
+							<div class="col-md-6">
+							    <input type="file" id="chooseFile" value="Choose File" name="file"/>
+							    <p><small>Maximum size:5mb, Format: PNG,JPG,PDF</small></p>
+							   <a href="download?fileName={{ItemModel.fileName}}" target="_blank" style="text-decoration: none"> {{ItemModel.fileName}} </a>
+							    <span id="fileMsg"></span>
+							</div> 
+							<div class="col-md-2 ">
+							    <input type="button" title="File size should be less than 5 MB" class="btn btn-default btn-sm" value="Upload" id="uploadFile"/>
+							</div>
+							<input type="hidden" class="form-control" id="fileName" data-ng-model="ItemModel.fileName"/>
+						</div>
+						<div class="form-group col-md-4 col-md-offset-4">
+						<input type="submit" data-ng-click="itemForm.$valid && AddItem()" id="addItemBtn" class="btn btn-primary" value="Add Item"/>
+						<input type="submit" data-ng-click="itemForm.$valid && UpdateItem()" id="updateItemBtn" class="btn btn-primary" value="Update"/>
+							
+						</div>
+					</form> 
+ 				</div>
+ 			</div>	
+ 		</div>				
+	</div>
+	
+	
+
+
+<script>
+ $(document).ready(function(){
+     //var date_input=$('input[id="billDate"]');
+    
+    
+    
+     //date_input.datepicker(options); 
+    
+    $('#savebtn').on('click' , function(){
+    	$('#formsubmit').attr('action' , 'saveRequest');
+    	$('#formsubmit').submit();
+    });
+    
+    $('#submitbtn').on('click' , function(){
+    	$('#formsubmit').attr('action' , 'submitRequest');
+    	$('#formsubmit').submit();
+
+    });
+    
+    $('#deletebtn').on('click' , function(){
+    	$('#formsubmit').attr('action' , 'deleterequest');
+    	$('#formsubmit').submit();
+    });
+    
+    
+  });
+  
+function openNav() {
+	    document.getElementById("mySidenav").style.transform = "translateY(10%)";
+		$('#updateItemBtn').hide();
+		$('#addItemBtn').show();
+		$('#addItemBtn').attr("disabled" , "");
+		/* function formatDate(date){
+			return date.getFullYear()+ "-" + ("0" + (date.getMonth() + 1)).slice(-2)+ "-" +date.getDate();
+
+		} */
+		
+
+	}
+	
+function closeNav() {
+	    document.getElementById("mySidenav").style.transform = "translateY(-100%)";
+	}
+	
+var app=angular.module("addApp",[]);
+
+/* app.directive('datepicker', function() {
+	var data = {
+			template: '<input type="text" class="form-control"  id="billDate">',
+			restrict: 'E',
+			require : 'ngModel',
+			compile: function( element, attributes ) {
+				return function($scope, element, attributes, ngModelCtrl) {
+					
+				
+					element.find('input[id="billDate"]').datepicker({
+	                    dateFormat:'dd-mm-yyyy',
+	                    onSelect:function (date) {
+	                        $scope.$apply(function () {
+	                            ngModelCtrl.$setViewValue(date);
+	                        });
+	                    }
+	                });
+               };
+			}
+	};
+    return data;
+});
+ */
+
+app.controller('addCtrl',function($scope){
+	
+	$scope.request = ${request};
+	for(var i = 0 ; i < $scope.request.items.length ; i = i+ 1){
+		$scope.request.items[i].billDate = new Date($scope.request.items[i].billDate); 	
+	}
+	
+	$scope.projectName=$scope.request.employee.assignedToProject.name;
+	$scope.managerName=${managerName};
+	$scope.type = $scope.request.category.type;
+	$scope.currencies=${Currencies};
+	$scope.maxDate = new Date();
+
+	$('#savebtn').removeAttr("disabled");
+	$('#submitbtn').removeAttr("disabled");
+	
+	/* $scope.payrollCategories=${payrollCategories};
+	$scope.nonPayrollCategories=${nonPayrollCategories};
+	
+	$scope.allowanceMap = ${allowanceMap}; */
+	
+
+	
+	/*  $('#billDate').datepicker({
+		dateformat: 'dd/mm/yyyy',
+	     
+	      
+	      changeMonth: true,
+	      changeYear: true,
+	      onSelect: function(date){
+	    	  $scope.ItemModel.billDate=date;
+	    	  $scope.$apply();
+	      }
+	}); */
+	
+	$scope.ItemModel={
+			billNumber:'',
+			billDate:'',
+			amount:'',
+			currency:'',
+			description:'',
+			fileName:''
+	};
+	
+	$scope.ItemList=$scope.request.items;
+		
+		
+		
+		$scope.AddItem=function(){
+			
+			
+			var _item={
+					billNumber:$scope.ItemModel.billNumber,
+					billDate:$scope.ItemModel.billDate,
+					amount:$scope.ItemModel.amount,
+					currency:$scope.ItemModel.currency,
+					description:$scope.ItemModel.description,
+					fileName:$scope.ItemModel.fileName
+			};
+			$scope.ItemList.push(_item);
+			document.getElementById("mySidenav").style.transform = "translateY(-100%)";
+			ClearModel();
+			}
+
+		$scope.DeleteItem=function(item){
+			var _index=$scope.ItemList.indexOf(item);
+			$scope.ItemList.splice(_index,1);
+			ClearModel();
+			
+		}
+		
+		$scope.EditItem=function(item){
+			    document.getElementById("mySidenav").style.transform = "translateY(10%)";
+			$scope.ItemModel.billNumber=item.billNumber;
+			$scope.ItemModel.billDate=item.billDate;
+			$scope.ItemModel.amount=item.amount;
+			$scope.ItemModel.currency=item.currency;
+			$scope.ItemModel.description=item.description;
+			$scope.ItemModel.fileName=item.fileName;
+			$('#updateItemBtn').show();
+			$('#addItemBtn').hide();
+		}
+		
+		$scope.UpdateItem=function(){
+			for(var i = 0 ; i < $scope.ItemList.length ; i = i + 1){
+				if($scope.ItemList[i].billNumber == $scope.ItemModel.billNumber){
+					$scope.ItemList[i].billDate = $scope.ItemModel.billDate ; 
+					$scope.ItemList[i].amount = $scope.ItemModel.amount ;
+					$scope.ItemList[i].currency = $scope.ItemModel.currency;
+					$scope.ItemList[i].description = $scope.ItemModel.description;
+					$scope.ItemList[i].fileName = $scope.ItemModel.fileName ;
+				}	
+			}
+			
+			/* tempList = [];
+			for(var i = 0 ; i < $scope.ItemList.length ; i = i + 1){
+				tempList[i].billNumber = $scope.ItemList.billNumber;
+				tempList[i].billDate = $scope.ItemList.billDate;
+				tempList[i].amount = $scope.ItemList.amount;
+				tempList[i].currency = $scope.ItemList.currency;
+				tempList[i].description = $scope.ItemList.description;
+				tempList[i].billNumber = $scope.ItemList.billNumber;
+				
+			} */
+			document.getElementById("mySidenav").style.transform = "translateY(-100%)";
+			ClearModel();
+		
+ 					};
+			
+		
+		
+		function ClearModel(){
+			$scope.ItemModel.billNumber='';
+			$scope.ItemModel.billDate='';
+			$scope.ItemModel.amount='';
+			$scope.ItemModel.currency='';
+			$scope.ItemModel.description='';
+			$scope.ItemModel.fileName='';
+		}
+		
+		$('#chooseFile').bind('change', function() {
+			var fileext = this.files[0].name.split('.')[this.files[0].name.split('.').length - 1].toLowerCase();
+			console.log(fileext);
+			
+             if(this.files[0].size/1024/1024 > 5 || !(fileext === 'png' || fileext === 'png' || fileext === 'jpg' )){
+            	 $('#uploadFile').attr("disabled" , "");
+	    		   $('#fileMsg').html("<font color='red'>File Size Exeeds 5 MB or Incorrect Format </font>");  
+
+             } 
+             else{
+            	 $('#uploadFile').removeAttr("disabled");
+	    		   $('#fileMsg').html("");
+
+             }
+     		   $('#fileMsg').html("<font color='red'>Click on Upload to Upload Image</font>");  
+
+        });
+		
+	    $("#uploadFile").click(function () {
+	    	
+	    	
+	    	var formData = new FormData(document.forms[1]);
+	    	   $.ajax({
+	    	       url: 'fileUpload',
+	    	       type: 'POST',
+	    	       data: formData,
+	    	       async: false,
+	    	       cache: false,
+	    	       contentType: false,
+	    	       enctype: 'multipart/form-data',
+	    	       processData: false,
+	    	       success:function(response){
+	    	    	   if('sizebig' === response){
+	    	    		   $('#addItemBtn').attr("disabled" , "");
+	    	    		   $('#updateItemBtn').attr("disabled" , "");
+	    	    		   $('#fileMsg').text('File Size Exeeds 5 MB');  
+	    	    	   }else {
+	    	    		   $scope.ItemModel.fileName=response;   
+	    	    		   $('#addItemBtn').removeAttr("disabled");
+	    	    		   $('#updateItemBtn').removeAttr("disabled");
+	    	    		   $('#fileMsg').text("");
+	    	    		   
+	    	    	   }
+	    	    	   
+	    	       }
+	    	   });
+	    	   
+	    });
+		
+});
+
+
+
+
+</script>
+</body>
+</html>
